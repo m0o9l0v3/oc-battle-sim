@@ -7,7 +7,7 @@
 
 ## 開発手順
 
-Node.js 22.12 以上が必要。
+Node.js 22.13 以上が必要。
 
 ```bash
 npm install
