@@ -3,7 +3,7 @@
 - 文書ID: <例: FTR-STAT>
 - バージョン: 0.1
 - 状態: 草案 / レビュー中 / 承認済み
-- 上位文書: [system-overview.md](./system-overview.md)
+- 上位文書: [system-overview.md](../00-overview/system-overview.md)
 
 ## 1. 概要
 
