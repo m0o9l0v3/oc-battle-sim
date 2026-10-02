@@ -35,3 +35,11 @@ npm run format   # Prettier で整形
 | `input`      | 入力抽象化                           |
 | `ui`         | 共通UI                               |
 | `assets`     | 画像などの素材                       |
+
+## デプロイ
+
+`main` への push で GitHub Actions（`.github/workflows/deploy.yml`）が build して GitHub Pages に配置する。
+PR では `.github/workflows/ci.yml` が lint / format / test / build を実行する。
+公開URL: https://m0o9l0v3.github.io/oc-battle-sim/
+
+リポジトリの Settings → Pages → Source を **GitHub Actions** にしておくこと。
