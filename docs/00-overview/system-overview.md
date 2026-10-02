@@ -87,6 +87,7 @@ Battle Report
 | REQ-RPT-02 | 必須 | 各戦のCharacterConfigを保存し、第1戦と再戦の比較に利用すること |
 | REQ-NET-01 | 目標 | PCで対戦ルームを作成し、QRコードからスマートフォンで参加できること |
 | REQ-NET-02 | 目標 | ブラウザ間のリアルタイム対戦を提供し、参加者にネットワーク設定を要求しないこと |
+| REQ-SHR-01 | 目標 | 対戦ルーム参加用のQRコードから、イベント終了後も参加者の設定（ファイター・ステージ）を復元し、家庭のPCで遊べること。会期後はバックエンドを必要とせず、GitHub Pagesのみで動作すること |
 | REQ-OPS-01 | 必須 | オープンキャンパス会場で短時間に説明・操作でき、当日の安定運用を優先すること |
 
 ## 5. ファイターと能力値の基準
@@ -153,7 +154,7 @@ MVPでは次の一連の体験を完了できることを必須とする。
   → 結果比較
 ```
 
-ネットワーク対戦はローカル対戦と切り分けて開発できる設計にする。QRコードによるスマートフォン参加・親子対戦は目標機能であり、全体の学習サイクルが損なわれない段階的な実装単位とする。
+ネットワーク対戦はローカル対戦と切り分けて開発できる設計にする。QRコードによるスマートフォン参加・親子対戦は目標機能であり、全体の学習サイクルが損なわれない段階的な実装単位とする。持ち帰り（REQ-SHR-01）もMVPには含めず、ローカル対戦が成立した後の目標機能とする。
 
 ### 7.1 MVPに含めない機能
 
@@ -233,7 +234,7 @@ docs/
 | `02-fighter` | `character-design.md`、`character-config.md`、`stat-system.md`、`animation.md` |
 | `03-combat` | `combat-system.md`、`damage.md`、`knockback.md`、`recovery.md`、`battle-rules.md` |
 | `04-stage` | `stage-editor.md`、`stage-format.md`、`validation.md` |
-| `05-multiplayer` | `multiplayer.md`、`room.md`、`protocol.md`、`synchronization.md` |
+| `05-multiplayer` | `multiplayer.md`、`room.md`、`protocol.md`、`synchronization.md`、`take-home-share.md` |
 | `06-ui` | `ui-design.md`、`pc-ui.md`、`mobile-ui.md` |
 | `07-report` | `battle-report.md`、`comparison.md` |
 | `08-architecture` | `frontend.md`、`backend.md`、`data-model.md`、`deployment.md` |
@@ -248,6 +249,7 @@ docs/
 - ステージ寸法、足場制約、スポーン位置、場外領域、データ形式
 - PCキー配置、スマートフォンの操作配置・横持ちの詳細
 - オンライン通信方式、ルーム管理、同期、切断・再接続動作
+- 持ち帰り用QRコードのデータ形式（ルーム参加情報と設定データの関係、データ量の上限、学校ロゴの表示）
 - Battle Reportの採用指標と第1戦・第2戦の比較方法
 - 実装アーキテクチャ、バックエンド選定、前回資産の再利用範囲
 - 1回の体験時間、途中参加、スタッフ運営手順
