@@ -34,7 +34,7 @@
 | 観点 | oc26-stage | oc-battle-sim |
 |---|---|---|
 | 体験 | 1人用。ステージを作って自分でクリアする | 1対1の対戦。能力値設計→対戦→Report→再戦 |
-| 配信 | `file://` でも動く単一HTML。サーバーなし | GitHub Pages（会期後の持ち帰り用QRの接続先）+ 別ホストの WebSocket バックエンド。当日の配信方法は #66 で決める |
+| 配信 | `file://` でも動く単一HTML。サーバーなし | 当日: 親機PCのローカルサーバー1台（アプリの配信と進行管理。[event-connection.md](./event-connection.md)）。会期後: GitHub Pages（持ち帰り用QRの接続先）。別ホストの WebSocket バックエンドは使わない |
 | 実行時依存 | ゼロ（AGENTS.md 3.1） | 制約なし（React, Vite 等を使う） |
 | 言語 | JavaScript | TypeScript |
 | ステージの意味 | ゴールに到達する | 場外に吹き飛ばして撃墜する。対戦成立のための検証が必要 |
