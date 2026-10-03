@@ -60,7 +60,7 @@
 | 11 | UI・画面文言 | `index.template.html`, `style.css`, `config.js` の文言 | **Replace** | 画面構成が別物。「文言を設定に集約する」方針だけ踏襲 |
 | 12 | 設定の集約（CONFIG） | `src/config.js` | **Refactor** | 調整値を1か所に集める方針は踏襲。値は別物 |
 | 13 | 計測 | `src/metrics.js` | **Discard** | localStorage の操作ログで、Battle Report とは目的が違う。try/catch の作法のみ参考 |
-| 14 | 進行管理システム | `src/progress*.js`, `tools/event-server.mjs`, `tools/admin.html` | **Refactor** | 会場LANがインターネットに出られないため、親機PCのローカルサーバーが担当する構成になり、同じ構成の資産として再利用する。ルーム中継と再戦の制御は新規 |
+| 14 | 進行管理システム | `src/progress*.js`, `tools/event-server.mjs`, `tools/admin.html` | **Refactor** | 会場LANがインターネットに出られないため、親機PCのローカルサーバーが担当する構成になり、同じ構成の資産として再利用する。再戦の制御は新規 |
 | 15 | ビルド | `tools/build.mjs` | **Discard** | Vite を使うため不要。単一HTML・`file://` 要件も本プロジェクトにはない |
 | 16 | テスト | `test/*.test.js` | **Refactor** | テストケースは移植価値あり。Vitest + TypeScript へ移す |
 | 17 | CI/配信 | `.gitlab-ci.yml` | **Discard** | GitHub Actions に移行済み（#3） |
@@ -148,7 +148,7 @@
 
 - 判定の見直し（2026-10-04）: 会場の有線LANがインターネットに出られないことが分かり、当日の配信・進行管理・通信は親機PCのローカルサーバーが担当することになった（[event-connection.md](./event-connection.md)）。これは `oc26-stage` の親機サーバーと同じ構成のため、判定を Replace から Refactor に変更する。
 - 流用できる点: 静的ファイルの配信、フェーズごとの操作可否、親機と通信できなくても体験を止めない縮退動作、スタッフ向け管理画面。改修量は、中。
-- 直す点: 参加者データを保存・受信しない方針は踏襲する。ルームの中継（WebSocket）、再戦の受付制御、TypeScript への移植が必要（#67、#68）。
+- 直す点: 参加者データを保存・受信しない方針は踏襲する。再戦の受付制御、TypeScript への移植が必要（#67、#68）。
 
 ### 3.14 ビルド・CI — Discard
 
@@ -211,7 +211,7 @@
 
 ## 7. 未確認・残課題
 
-- **持ち帰り用 QR コード（方針は所有者と確認済み）:** 帰宅後に設定を復元して遊べるようにしたい。QR には「GitHub Pages の固定 URL + ステージ・ファイター設定」を入れる。会期後はバックエンドを動かさず、GitHub Pages のみでホスティングし、設定の復元と家庭での PC ローカル対戦（#21）を提供する。当日の対戦ルーム参加用QR（LANのアドレス）とは別のQRにする（[event-connection.md](./event-connection.md) §5.2）。この機能は REQ-SHR-01 として system-overview.md に追加済み。本書では、URL 共有（§3.8）を Refactor、印刷機能（§3.16）を Discard と判定した。印刷が必要になった場合は見直す。
+- **持ち帰り用 QR コード（方針は所有者と確認済み）:** 帰宅後に設定を復元して遊べるようにしたい。QR には「GitHub Pages の固定 URL + ステージ・ファイター設定」を入れる。会期後はバックエンドを動かさず、GitHub Pages のみでホスティングし、設定の復元と家庭での PC ローカル対戦（#21）を提供する。この機能は REQ-SHR-01 として system-overview.md に追加済み。本書では、URL 共有（§3.8）を Refactor、印刷機能（§3.16）を Discard と判定した。印刷が必要になった場合は見直す。
   - 共有 URL は `location` から組み立てず、固定の公開 URL から生成する（§3.8）。
   - キャラクター名が URL に入るため、個人情報を入れないよう注意書きを出す。
 - ブラウザでの動作確認（操作感、モバイルの実機表示）は未実施。実際の挙動は、移植時に各 Issue で確認する。
