@@ -38,7 +38,7 @@ type Stats = {
 }
 
 type Appearance = {
-  body: string // 選択肢のID（#9 で一覧を定義）
+  body: string // 選択肢のID（許可するIDは character-design.md §5.1.1 の一覧）
   face: string
   color: string
   accessory: string | null // なし = null
@@ -57,10 +57,10 @@ type CharacterConfig = {
 | `schemaVersion` | 形式のバージョン。現在は 1。QRで運ぶとき、読み込み側が互換性を判断する |
 | `name` | 参加者が付ける名前。**10文字以内、かつ UTF-8 で30バイト以内**（暫定。文字は Unicode のコードポイントで数える。§5.5）。未入力のときは、デフォルト名を使う（§7） |
 | `stats` | 4つの能力値。範囲と合計は [stat-system.md](./stat-system.md) §5 に従う |
-| `appearance` | 見た目の選択。選択肢の一覧は #9 で定義する。能力値と当たり判定に影響しない |
+| `appearance` | 見た目の選択。許可するIDは [character-design.md](./character-design.md) §5.1.1 の一覧がすべて。能力値と当たり判定に影響しない |
 
 - すべての値は、JSON として書き出し・読み込みができる（関数や循環参照を持たない）。
-- 外観の選択肢の数・IDは #9 で定める。本書では、IDが文字列であることだけを決める。
+- 外観の選択肢の数・IDは、[character-design.md](./character-design.md) §5.1.1 で定める（`body` は `b1`〜`b4`、`face` は `f1`〜`f6`、`color` は `c1`〜`c8`、`accessory` は `a1`〜`a6` または `null`）。`APPEARANCE_UNKNOWN` は、この一覧にないIDのときに返す。
 - 名前に個人情報を入れないよう、入力画面で注意書きを出す（名前は持ち帰り用QRのURLに入る。#60）。
 
 ## 5. 検証ルール
@@ -161,7 +161,7 @@ hasStatChange(before: Stats, after: Stats): boolean
 | 標準の `stats` | `{ attackPower: 5, defense: 5, jumpPower: 5, speed: 5 }` |
 | 1P のデフォルト名 | 「ファイター」（暫定。#9、#27 で最終確定） |
 | 2P のデフォルト名 | 「あいて」（暫定） |
-| 標準の `appearance` | #9 で定義する、デフォルトの組み合わせ |
+| 標準の `appearance` | [character-design.md](./character-design.md) §5.3 の初期値（1P: `b1`/`f1`/`c1`/なし、2P: `b1`/`f2`/`c2`/なし） |
 | 2P の初期設定 | 標準の能力値で始まり、後から能力値だけ変更できる（[user-flow.md](../01-experience/user-flow.md) §5.6） |
 
 - 標準の設定を生成する関数 `createDefaultConfig(player: 'p1' | 'p2')` を用意する。
