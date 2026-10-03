@@ -84,6 +84,7 @@ Battle Report
 | REQ-RPT-01 | 必須 | Battle Reportに勝敗だけでなく、対戦内容を振り返るための指標を表示すること |
 | REQ-RPT-02 | 必須 | 各戦のCharacterConfigを保存し、第1戦と再戦の比較に利用すること |
 | REQ-NET-01 | 目標 | 持ち帰ったQRコードから、スマートフォン単体で遊べること（タッチ操作の仮想コントローラー、横持ち）。当日の会場ではスマートフォンを使わない |
+| REQ-CPU-01 | 目標 | 持ち帰り後にスマートフォン単体（およびPC単体）で遊ぶとき、基本的な移動・攻撃・回避・復帰をする簡易CPUを対戦相手として提供すること。プレイヤーと同じ入力・物理・能力値のルールで動き、特別な能力を持たない |
 | REQ-NET-02 | 取り下げ | ブラウザ間のリアルタイム通信対戦は行わない（2026-10-04 に取り下げ。当日は1台のキーボードを共有、持ち帰り後はスマートフォン単体のため） |
 | REQ-SHR-01 | 目標 | イベント終了後に持ち帰ったQRコードから、参加者の設定（ファイター・ステージ）を復元し、家庭で遊べること。当日の会場では、PCで1台のキーボードを2人で共有して対戦する。GitHub Pagesの固定URLを接続先とする |
 | REQ-OPS-01 | 必須 | オープンキャンパス会場で短時間に説明・操作でき、当日の安定運用を優先すること |
@@ -161,7 +162,7 @@ MVPでは次の一連の体験を完了できることを必須とする。
 - 複雑なコンボシステム、アイテム、4人対戦
 - ランキング、アカウント登録、永続プロフィール、課金
 - 3Dキャラクター、高度な物理エンジン
-- 高度なCPU AI
+- 高度なCPU AI（基本的な動きをする簡易CPUは、REQ-CPU-01 として目標機能に含める）
 - ブラウザ間のリアルタイム通信対戦、対戦ルーム、スマートフォンの当日参加
 
 ## 8. 非機能要件
@@ -232,7 +233,7 @@ docs/
 |---|---|
 | `01-experience` | `user-flow.md`、`event-operation.md`、`event-control.md` |
 | `02-fighter` | `character-design.md`、`character-config.md`、`stat-system.md`、`animation.md` |
-| `03-combat` | `combat-system.md`、`damage.md`、`knockback.md`、`recovery.md`、`battle-rules.md` |
+| `03-combat` | `combat-system.md`、`damage.md`、`knockback.md`、`recovery.md`、`battle-rules.md`、`cpu-opponent.md` |
 | `04-stage` | `stage-editor.md`、`stage-format.md`、`validation.md` |
 | `05-multiplayer` | `take-home-share.md` |
 | `06-ui` | `ui-design.md`、`pc-ui.md`、`mobile-ui.md` |
@@ -248,7 +249,7 @@ docs/
 - キャラクターパーツの具体的な絵柄、選択肢数、個々のアニメーション実装
 - ステージ寸法、足場制約、スポーン位置、場外領域、データ形式
 - PCキー配置、スマートフォンの操作配置・横持ちの詳細
-- スマホ単体でのプレイ時の対戦相手（2人で1台のスマホを共有、動かない相手、簡易CPUなど）
+- 簡易CPUの行動の範囲と強さ、「防御」の扱い（ガード操作を設けるか、回避行動で代えるか）
 - 親機で管理する項目（REQ-OPS-02）。接続方式は、会場LAN内の親機のローカルサーバーに決定済み（`08-architecture/event-connection.md`）
 - 持ち帰り用QRコードのデータ形式（設定データの形式、データ量の上限、学校ロゴの表示）
 - Battle Reportの採用指標と第1戦・第2戦の比較方法
