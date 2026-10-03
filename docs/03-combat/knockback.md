@@ -4,7 +4,7 @@
 - バージョン: 0.1
 - 状態: 草案（係数は暫定。バランス調整は #25）
 - 上位文書: [combat-system.md](./combat-system.md)
-- 関連: [damage.md](./damage.md)、[stat-system.md](../02-fighter/stat-system.md)、`recovery.md`（#12）
+- 関連: [damage.md](./damage.md)、[stat-system.md](../02-fighter/stat-system.md)、[recovery.md](./recovery.md)
 
 ## 1. 概要
 
@@ -48,7 +48,7 @@ launchSpeed = (KB_BASE + KB_SCALE × damage_after) × (1 − K_defense × (defen
 | **座標の向き（全文書で共通）** | 横: **右が正**。縦: **下が正**（上向きの速さは**負**）。[animation.md](../02-fighter/animation.md) §6.1 の `FighterSnapshot.vy`（正が下。`vy < 0` が上昇）と同じ。重力は `vy` を**増やす**。変換が不要になるよう、物理（#22）・戦闘・アニメーションで、この向きを使う |
 
 - 角度を固定にするのは、結果の予測を単純にするため（設計原則 2）。距離は、速さだけで決まる。
-- **65° にした理由（2026-10-04 に 40° から変更）:** 40° では、ステージの端で1回当たっただけで、水平に遠くへ飛ばされ、復帰できずに落下して撃墜された（復帰の見積もり。`recovery.md`（#12）§7）。65° にすると、上へ多く飛び、水平のずれが小さくなるため、**ダメージが小さいうちは復帰でき、ダメージが大きいと復帰できない**、という「ダメージ蓄積 → 撃墜」の流れになる（REQ-CMB-01）。
+- **65° にした理由（2026-10-04 に 40° から変更）:** 40° では、ステージの端で1回当たっただけで、水平に遠くへ飛ばされ、復帰できずに落下して撃墜された（復帰の見積もり。[recovery.md](./recovery.md)§7）。65° にすると、上へ多く飛び、水平のずれが小さくなるため、**ダメージが小さいうちは復帰でき、ダメージが大きいと復帰できない**、という「ダメージ蓄積 → 撃墜」の流れになる（REQ-CMB-01）。
 - 地面にいる相手も、空中にいる相手も、同じ角度で飛ぶ。
 
 ## 5. やられ中（hitstun）の長さ
@@ -81,7 +81,7 @@ hitstunMs = min(HITSTUN_MAX, HITSTUN_BASE + HITSTUN_SCALE × launchSpeed)
   1. `vy ← vy + 重力 × dt`（先に、速度を更新する）
   2. `y ← y + vy × dt`、`x ← x + vx × dt`（更新した速度で、位置を進める）
 - この更新で数えた結果が、本書と [combat-system.md](./combat-system.md) §11 の数値の基準（連続の式の近似ではない）。
-- 復帰（ステージに戻る）の動きは、`recovery.md`（#12）。
+- 復帰（ステージに戻る）の動きは、[recovery.md](./recovery.md)。
 
 ## 7. 吹き飛ぶ距離の目安
 
