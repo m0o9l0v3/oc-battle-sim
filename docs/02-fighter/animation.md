@@ -78,11 +78,25 @@ type Keyframe = {
   ease?: Ease // 直前のキーフレームから、このキーフレームへの補間
 }
 
+// どのパーツの、どの値を、そのクリップが動かすか。
+// true: そのパーツのすべての値。配列: 指定した値だけ（例: root の dx だけ）。
+// face は、true のみ指定できる。
+type AffectMask = {
+  root?: true | (keyof PartPose)[]
+  torso?: true | (keyof PartPose)[]
+  head?: true | (keyof PartPose)[]
+  armF?: true | (keyof PartPose)[]
+  armB?: true | (keyof PartPose)[]
+  legF?: true | (keyof PartPose)[]
+  legB?: true | (keyof PartPose)[]
+  face?: true
+}
+
 type Clip = {
   state: 'idle' | 'run' | 'jump' | 'fall' | 'attack' | 'hit' | 'ko'
   loop: boolean // true: 繰り返す。false: 最後のポーズで止まる
   duration: number // ミリ秒
-  affects: (keyof Pose)[] // このクリップが動かすパーツ（§6.2）
+  affects: AffectMask // このクリップが動かす部位と値（§4.5、§6.2）
   keyframes: Keyframe[]
 }
 ```
@@ -101,6 +115,32 @@ type Clip = {
 | `armF` / `armB` | `rot +4` / `rot −4`（少し開いて垂れる） |
 | `legF` / `legB` | `rot +3` / `rot −3` |
 | `face` | `normal` |
+
+### 4.5 ポーズの合成規則
+
+1つのファイターの最終ポーズは、複数のクリップとオーバーレイから、次の規則で作る。
+
+| 種類 | 規則 |
+|---|---|
+| **置き換え** | `affects` で指定された部位・値は、そのクリップの値で置き換える。指定されていない部位・値は、下の層（移動の動き）の値をそのまま使う |
+| **重ね（オーバーレイ）** | 着地などの重ねる動きは、下の層の値に対して、**拡大縮小（`sx`、`sy`）は乗算**、位置（`dx`、`dy`）と角度（`rot`）は**加算**で重ねる。値が「何も変えない」状態（`sx`、`sy` は 1.0、`dx`、`dy`、`rot` は 0）のとき、下の層を変えない |
+
+層の順序（下から上）:
+
+```text
+1. 移動の動き（Idle / Run / Jump / Fall）  … 全部位
+2. Attack                                 … affects の部位・値だけ置き換え
+3. Hit / KO                               … すべて置き換え
+4. 着地（オーバーレイ）                    … 乗算・加算で重ねる
+```
+
+- Attack の `affects` は、例えば次のように書ける（`root` は `dx` だけ。`sx`、`sy`、`dy`、`rot` は、移動の動きのまま）:
+
+```ts
+affects: { root: ['dx'], torso: true, head: true, armF: true, armB: true, face: true }
+```
+
+- `affects` に書いた値の名前は、`PartPose` のキー（`dx`、`dy`、`rot`、`sx`、`sy`）に限る。起動時の検証で、未知の名前を拒否する。
 
 ## 5. 7つのクリップ
 
@@ -167,7 +207,7 @@ type Clip = {
 | 硬直の終わり | 0 | 0 | 0 | +4 | −4 | `normal` |
 
 - 補間は、発生: `easeInOut`、持続の開始: `linear`（打撃は速く）、硬直: `easeOut`。
-- `affects` は、`root.dx`、`torso`、`head`、`armF`、`armB`、`face` だけ。**脚は動かさず、今の移動の動き（Idle / Run / Jump / Fall）のまま**にする（§6.2）。これにより、空中の攻撃も、地上の攻撃も、1つのクリップで表せる。
+- `affects` は `{ root: ['dx'], torso: true, head: true, armF: true, armB: true, face: true }`（§4.5）。`root` は **`dx` だけ**を置き換え、`sx`、`sy`、`dy`、`rot` は、移動の動きのまま残す。**脚は動かさず、今の移動の動き（Idle / Run / Jump / Fall）のまま**にする（§6.2）。これにより、空中の攻撃も、地上の攻撃も、1つのクリップで表せる。
 
 ### 5.6 Hit（やられ）
 
@@ -195,12 +235,15 @@ type Clip = {
 
 ### 5.8 着地（クリップでなく、重ねる動き）
 
-- 7状態とは別に、**着地の瞬間**だけ、`root` を一時的につぶす（加算）。独立した状態にしない。
+- 7状態とは別に、**着地の瞬間**だけ、`root` を一時的につぶす（**重ね**。§4.5）。独立した状態にしない。
+- 表の値は、**下の層の `root.sx` / `root.sy` に掛ける係数**（乗算）。加算ではない。
 
-| t (ms) | `root.sx` | `root.sy` |
+| t (ms) | `root.sx` の係数 | `root.sy` の係数 |
 |---|---|---|
-| 0 | 1.08 | 0.90 |
-| 80 | 1.00 | 1.00 |
+| 0 | ×1.08 | ×0.90 |
+| 80 | ×1.00 | ×1.00 |
+
+- 終点の ×1.00 は、何も変えない。終わると、下の層の値に戻る。例: 走り（`root.sy` 1.0）に重ねると、`sy` は 0.90 → 1.00。待機（`root.sy` 1.02）に重ねると、0.918 → 1.02。
 
 - 条件: 空中から地面に着いたときの落下の速さが、**6 セル/秒以上**のとき（短い着地では出さない）。`easeOut`。
 
@@ -276,7 +319,7 @@ type FighterSnapshot = {
 
 - 状態の選択（`selectState`）、クリップの再生（`sampleClip(clip, t)`）、ポーズの合成（`composePose`）は、描画から独立した純粋な関数にして、**ユニットテストできる**ようにする（#29）。
 - 1ファイターあたりの、1ステップの計算は、7つのパーツのポーズの補間だけで、非常に小さい。20体が同時にいても、60 FPS に影響しない（NFR-03）。
-- クリップのデータは、TypeScript の型で検証する。キーフレームの順序、`duration`、`affects` を、起動時に確認する。
+- クリップのデータは、TypeScript の型で検証する。キーフレームの順序、`duration`、`affects`（部位と値の名前）を、起動時に確認する。
 
 ## 9. 当たり判定との関係
 
@@ -316,3 +359,4 @@ type FighterSnapshot = {
 | 日付 | 変更内容 | 理由 | 影響範囲 |
 |---|---|---|---|
 | 2026-10-04 | 初版。数値は暫定 | #10 の対応 | #11（攻撃のフレーム）、#12（リスポーン）、#20、#22、#29 が参照する |
+| 2026-10-04 | #79 のレビュー指摘に対応。`affects` を値単位で指定できる型（`AffectMask`）にし、ポーズの合成規則（置き換え・重ね）を追加。着地の値を、乗算の係数として明記 | レビュー指摘 | #29 |
