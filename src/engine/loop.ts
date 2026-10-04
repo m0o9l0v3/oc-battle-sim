@@ -100,10 +100,12 @@ export class GameLoop {
         n = this.maxSteps
         this.opts.onDrop?.(dropped)
       }
-      for (let i = 0; i < n; i++) {
+      for (let i = 0; i < n && this.active; i++) {
         this.opts.onStep(this.steps++)
         this.acc -= this.stepMs
       }
+      // 更新の中で stop() された（試合の終了など）ときは、残りのステップも描画もしない
+      if (!this.active) return
       if (this.acc < 0) this.acc = 0
       this.opts.onDraw(Math.min(this.acc / this.stepMs, 1))
     } catch (error) {

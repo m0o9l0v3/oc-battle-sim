@@ -48,6 +48,7 @@ export default tseslint.config(
         'fetch',
         'localStorage',
         'sessionStorage',
+        'crypto',
         'requestAnimationFrame',
         'setTimeout',
         'setInterval',
@@ -55,7 +56,22 @@ export default tseslint.config(
       'no-restricted-properties': [
         'error',
         { object: 'Math', property: 'random', message: '乱数は使わない（決定性）' },
-        { object: 'Date', property: 'now', message: '時計は引数で受け取る' },
+      ],
+      // 時計（Date）は、値の生成も静的メソッドも使わない。時刻は引数で受け取る
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "NewExpression[callee.name='Date']",
+          message: '時計は引数で受け取る（決定性）',
+        },
+        {
+          selector: "CallExpression[callee.name='Date']",
+          message: '時計は引数で受け取る（決定性）',
+        },
+        {
+          selector: "MemberExpression[object.name='Date']",
+          message: '時計は引数で受け取る（決定性）',
+        },
       ],
     },
   },

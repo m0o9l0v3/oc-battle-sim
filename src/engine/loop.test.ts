@@ -105,6 +105,23 @@ describe('GameLoop', () => {
     expect(h.hasPending()).toBe(false)
   })
 
+  it('追いつきの途中で stop() されたら、残りのステップも描画もしない', () => {
+    const ref: { loop?: GameLoop } = {}
+    const seen: number[] = []
+    const h = harness({
+      onStep: (s) => {
+        seen.push(s)
+        if (s === 1) ref.loop?.stop()
+      },
+    })
+    ref.loop = h.loop
+    h.loop.start()
+    h.frame(STEP * 4) // 4 ステップ分が溜まっているが、2つ目で止める
+    expect(seen).toEqual([0, 1])
+    expect(h.log.draws).toHaveLength(0)
+    expect(h.hasPending()).toBe(false)
+  })
+
   it('例外でループを止め、onError を呼ぶ', () => {
     const errors: unknown[] = []
     const h = harness({
