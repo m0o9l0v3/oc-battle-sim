@@ -204,21 +204,22 @@ sequenceDiagram
     Run->>UI: events を report に渡す／HUD 用の値が変わったときだけ通知
     Run->>Rd: pushEvents(events)（キューにためる）
   end
-  Loop->>Rd: draw(state, 補間 alpha)（キューのイベントを消費して演出）
+  Loop->>Rd: draw(prev, curr, 補間 alpha)（キューのイベントを消費して演出）
 ```
 
 ### 6.2 ゲームループ（`engine/`）
 
 - **固定ステップ 60 Hz** で `stepMatch` を呼ぶ。描画は `requestAnimationFrame` に合わせる。高リフレッシュレートの画面でも物理の速さが変わらない（combat-system.md §4）。
-- 1フレームあたりの**最大ステップ数は 5**（legacy-assessment.md §3.4 の `maxStepsPerFrame` を踏襲）。超えた分の時間は**捨てる**（追いつこうとして暴走しない。低性能端末を考慮）。
+- 1フレームあたりの**最大ステップ数は 5**（legacy-assessment.md §3.4 の `maxStepsPerFrame` を踏襲）。超えた分の物理の進行は**捨てる**（追いつこうとして暴走しない。低性能端末を考慮）。
+- 捨てた分で**試合の制限時間だけが遅れない**ようにする（90秒の試合が、低性能端末で実時間の数分に延びるのを防ぐ。battle-rules.md §4）。`MatchRunner` が、捨てたステップ数を `clockSkip`（そのステップで、制限時間から**追加で引く**ステップ数。物理・戦闘には影響しない）として `stepMatch` の入力に渡す。`clockSkip` は入力の一部としてリプレイに記録するため、決定性は保たれる。
 - タブが非表示になった／復帰したときは、経過時間を上限で丸める（長い停止のあとに、まとめて進まない）。
-- 描画には、ステップ間の補間率 `alpha`（0〜1）を渡す。補間は**描画だけ**に使い、core の状態には影響させない。
+- 描画には、直近の2ステップの状態と、その間の補間率 `alpha`（0〜1）を渡す。補間は**描画だけ**に使い、core の状態には影響させない。
 - ループは、`start()` / `stop()` を持つ小さなクラスで、**時刻の取得と `requestAnimationFrame` を差し替えられる**（テストでは手動で時間を進める）。コンポーネントの unmount で、必ず `stop()` と `InputSource.dispose()` を呼ぶ。
 - ループの中の例外は、捕まえて**ループを止め、安全な画面（S06 へ戻る案内）へ遷移する**。スタックトレースは参加者に見せない（ui-design.md §10 の安定運用）。
 
 ### 6.3 描画（`render/`）
 
-- `Renderer` は、`pushEvents(events: MatchEvent[]): void` と `draw(snapshot: MatchSnapshot, alpha: number): void` を持つ。`MatchRunner` が**ステップごとに** `pushEvents` でイベントをキューにため、`draw` がまとめて消費して演出（ヒットの効果、揺れ）を起こす。1フレームに複数ステップが進んでも、イベントを取りこぼさない（最終のスナップショットからは復元できないため）。キューは演出が終われば捨てる（上限つき）。`MatchSnapshot` は core の `MatchState` の読み取り専用ビュー。**描画は状態を書き換えない**。
+- `Renderer` は、`pushEvents(events: MatchEvent[]): void` と `draw(prev: MatchSnapshot, curr: MatchSnapshot, alpha: number): void` を持つ。`prev` と `curr` は、**隣り合う2つのステップ**の状態で、`MatchRunner` が毎ステップ保持して渡す（1フレームに複数ステップ進んでも、補間は最後の1ステップの区間で行う）。`MatchRunner` が**ステップごとに** `pushEvents` でイベントをキューにため、`draw` がまとめて消費して演出（ヒットの効果、揺れ）を起こす。1フレームに複数ステップが進んでも、イベントを取りこぼさない（最終のスナップショットからは復元できないため）。キューは演出が終われば捨てる（上限つき）。`MatchSnapshot` は core の `MatchState` の読み取り専用ビュー。**描画は状態を書き換えない**。
 - Canvas 2D だけを使う（NFR-06）。内部の座標系は、ステージの**セル単位**（stage-format.md §4）。画面への変換は、`Renderer` の中だけで行う。
 - 基準の大きさは 1280 × 720。実際の画面サイズに合わせて CSS で拡大し、`devicePixelRatio` に合わせて内部解像度を設定する（ui-design.md §9）。
 - ファイターは、少数のパーツを合成して描き、アニメーション（Idle、Run、Jump、Fall、Attack、Hit、KO）を**パーツの移動・回転・拡大縮小**で表す（animation.md）。使うポーズの選択は、`MatchState` のファイターの状態（`fighter.state`）から決める。見た目は**当たり判定に影響しない**（REQ-FTR-05）。判定は常に core の長方形。
@@ -231,7 +232,7 @@ sequenceDiagram
 |---|---|---|
 | ui → 対戦（開始・終了） | `MatchRunner` を生成して `start()`。canvas 要素の参照は、`useEffect` で渡す | 対戦ごとに1回 |
 | 対戦 → ui（HUD） | `MatchRunner` が、**HUD の値が変わったときだけ**通知する小さなストア（`useSyncExternalStore` で購読）。値は、蓄積ダメージ（整数）、ストック、残り時間（秒）、READY・FIGHT・END の段階 | 値が変わったときだけ |
-| 対戦 → ui（結果） | 対戦の終了時に、`BattleRecord`（§7.3）を1回渡す | 対戦ごとに1回 |
+| 対戦 → ui（結果） | 対戦の終了時に、`MatchResult`（§7.3。battle-report.md §6 で定義済みの型。comparison.md §3.1 の入力と同じ）を1回渡す | 対戦ごとに1回 |
 
 - 毎ステップ・毎フレームの状態を、React の state に入れない（D4）。HUD は、React が描く DOM の重ね表示（Canvas の上）とする。文字は読みやすく、`ui-design.md` の部品と同じものを使える。
 - 試し動かし（S05）と対戦（S07、S10）は、**同じ `MatchRunner`** を、ルール設定（試し動かしは、ストック無制限・時間無制限など）だけ変えて使う。
@@ -252,6 +253,7 @@ type MatchState = {
 function stepMatch(
   state: MatchState,
   inputs: [PlayerInput, PlayerInput],
+  clockSkip: number, // 捨てたステップ数。制限時間からだけ引く（§6.2）。通常は 0
   ctx: MatchContext, // 変わらない文脈。ステージ、2人の能力値から導いた物理パラメータ
 ): { state: MatchState; events: MatchEvent[] }
 ```
@@ -272,8 +274,8 @@ function stepMatch(
 
 ### 7.3 Battle Report
 
-- `report` は、`MatchEvent[]` と、対戦開始時の `CharacterConfig` ×2・`StageData` から `BattleRecord` を作る**純関数**を持つ（REQ-RPT-02: 各戦の設定を保存して比較に使う）。
-- `BattleRecord` は JSON にできる値だけで構成する。保存方式（メモリ、sessionStorage、localStorage）は、`ui` の**セッション保存の口**（§9.2）の後ろに隠し、`report` は知らない。
+- `report` は、`MatchEvent[]` と、対戦開始時の `CharacterConfig` ×2・`StageData` から `MatchResult` を作る**純関数**を持つ（REQ-RPT-02: 各戦の設定を保存して比較に使う）。
+- `MatchResult` は JSON にできる値だけで構成する。保存方式（メモリ、sessionStorage、localStorage）は、`ui` の**セッション保存の口**（§9.2）の後ろに隠し、`report` は知らない。
 
 ### 7.4 簡易CPU（目標機能）
 
@@ -327,11 +329,11 @@ type ProgressState = { phase: Phase; sessionId: string; revision: number /* … 
 ### 9.1 画面フロー
 
 - 画面 S01〜S12（user-flow.md）の遷移は、**ルーターのライブラリを使わず**、純粋な reducer（状態機械）で表す。`(flow, action) → flow`。遷移の可否（戻れる画面、戻れない画面、S09 の完了条件）は、この reducer が持ち、React に依存しないため、単体でテストできる。
-- URL は、持ち帰りデータを運ぶためだけに使う（フラグメント `#…`）。画面の遷移で URL を変えない（静的配信で、親機・GitHub Pages のどちらでも、パスの設定なしで動く）。
+- URL は、持ち帰りデータを運ぶためだけに使う（フラグメント `#…`）。**例外として、起動時に `?reset` を判定する**（event-control.md §9.1.1 の個別リセット用ブックマーク）。`?reset` があれば、**セッションの復元より前に** `SessionRepository.clear()` を呼び、S01 から始める（前の参加者のデータを次の参加者に見せない）。画面の遷移で URL を変えない（静的配信で、親機・GitHub Pages のどちらでも、パスの設定なしで動く）。
 
 ### 9.2 セッションの状態
 
-- 参加者のデータ（`CharacterConfig` ×2、`StageData`、`BattleRecord[]`、フロー）は、**1つのセッションストア**（React の `useReducer` + Context、または `useSyncExternalStore` 用の小さなストア。追加の状態管理ライブラリは入れない）が持つ。
+- 参加者のデータ（`CharacterConfig` ×2、`StageData`、`MatchResult[]`、フロー）は、**1つのセッションストア**（React の `useReducer` + Context、または `useSyncExternalStore` 用の小さなストア。追加の状態管理ライブラリは入れない）が持つ。
 - 永続化は、`SessionRepository`（`load()` / `save(snapshot)` / `clear()`）の後ろに隠す。**保存方式（localStorage の使用有無、キー、`sessionId` の保持）は、データモデル（#18）で決める。** 本書で決めるのは、次の制約だけ。
   - `load` / `save` は、利用できない環境（無効化、容量超過）でも**例外を投げず**、体験を止めない（try/catch。legacy-assessment.md §3.12 の作法）。
   - 保存するのは、設定・ステージ・戦の記録・フロー。対戦中の途中状態（`MatchState`）は保存せず、更新（再開）では S06 から再開する（user-flow.md §6.1.1）。
