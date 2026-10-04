@@ -59,6 +59,8 @@ compare(a: MatchResult, b: MatchResult): ComparisonView
 │   こうげき力 ＋2   →  1かいの ダメージ   12.0 → 13.2（＋1.2） │
 │   ふっとばされにくさ −2 → 60%の とき ふっとぶ きょり ▮ → ▮（＋▮）│
 │ ─ ③ けっか と しあいで みた うごき ─（うんや あいての うごきでも かわるよ）│
+│   しょうはい                 1P の かち →  ひきわけ           │
+│   のこり ストック  1P / 2P     ●●○ / ●○○ → ●○○ / ●○○        │
 │   あたえた ダメージ           ▮     →    ▮       ＋▮       │
 │   うけた ダメージ             ▮     →    ▮       −▮       │
 │   たおした / たおされた         ▮ / ▮  →  ▮ / ▮               │
@@ -93,7 +95,8 @@ compare(a: MatchResult, b: MatchResult): ComparisonView
 
 ### 5.3 ③ けっか（結果の差分）
 
-- [battle-report.md](./battle-report.md) §4.1 の6つに加えて、**「しあいで みた うごき」**（[battle-report.md](./battle-report.md) §4.2 の右の列。あてた かいすう、ふっとんだ きょり、ジャンプ・もどれた かいすう、うごいた きょり）を、「左の戦」「右の戦」「差」で並べる。
+- **勝敗（勝者と理由）と、残りのストック**を、いちばん上に、並べる（「第 N 戦: 1P の かち（ストックで かった）」→「第 M 戦: ひきわけ」のように、**それぞれの結果を文で示す**。差の符号は付けない。[battle-report.md](./battle-report.md) §4.1）。
+- [battle-report.md](./battle-report.md) §4.1 の6つ（勝敗を除く）に加えて、**「しあいで みた うごき」**（[battle-report.md](./battle-report.md) §4.2 の右の列。あてた かいすう、ふっとんだ きょり、ジャンプ・もどれた かいすう、うごいた きょり）を、「左の戦」「右の戦」「差」で並べる。
 - 差は、「＋」（ふえた）「−」（へった）「0」（おなじ）。**よい・わるいの価値づけをしない**（§7）。
 - 見出しに、「うんや あいての うごきでも かわるよ」と添える。**②（すうじから きまる）と③（しあいで みた・けっか）を、区別して**見せる。観察の値は、**変えた数字と、同じ向きに変わるとは限らない**（相手の動き、操作、試合の長さにも、左右される）。
 - 試合の長さ（秒）を、並べて表示する。長さが違うと、ダメージの合計なども変わるため。
@@ -158,8 +161,8 @@ type StatChange = { key: 'attackPower' | 'defense' | 'jumpPower' | 'speed'; befo
 type MetricDiff = { before: number | null; after: number | null; delta: number | null }
 
 type ComparisonView = {
-  left: { matchNo: number }
-  right: { matchNo: number }
+  left: { matchNo: number; outcome: MatchOutcome; stocksLeft: { p1: number; p2: number } }
+  right: { matchNo: number; outcome: MatchOutcome; stocksLeft: { p1: number; p2: number } }
   p1StatChanges: StatChange[] // 4 つすべて（変わっていないものは delta 0）
   p2StatChanges: StatChange[]
   p1Unchanged: boolean // 1P の能力値が、すべて同じ
@@ -204,5 +207,6 @@ type ComparisonView = {
 | 日付 | 変更内容 | 理由 | 影響範囲 |
 |---|---|---|---|
 | 2026-10-04 | 初版。文言は暫定 | #16 の対応 |
+| 2026-10-04 | #85 の追加レビュー指摘に対応。③ に、それぞれの戦の勝敗（勝者・理由）と、残りのストックを追加し、`ComparisonView` に入れた | レビュー指摘 | battle-report.md |
 | 2026-10-04 | #85 の追加レビュー指摘に対応。1P の能力値が同じときの注意と問いかけを、原因を決めつけず、2P の能力値と、結果が同じ場合にも合う中立の文に直した | レビュー指摘 | #39 |
 | 2026-10-04 | #85 のレビュー指摘に対応。② を、能力値から計算で決まる確定の値だけにし、試合中に測った値は ③ に移した。能力値は合計 20 ポイントで、1つだけ変えることはできないため、問いかけを、いちばん大きく変わった数字（ふやした数字と、へらした数字の組）で選ぶ形に直した | レビュー指摘 | battle-report.md、#39 | #35、#39、ui-design.md §7.10 |
