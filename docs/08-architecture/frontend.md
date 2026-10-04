@@ -202,8 +202,9 @@ sequenceDiagram
     Run->>In: sample()（1P・2P）
     Run->>Core: stepMatch(state, inputs) → (state', events)
     Run->>UI: events を report に渡す／HUD 用の値が変わったときだけ通知
+    Run->>Rd: pushEvents(events)（キューにためる）
   end
-  Loop->>Rd: draw(state, 補間 alpha)
+  Loop->>Rd: draw(state, 補間 alpha)（キューのイベントを消費して演出）
 ```
 
 ### 6.2 ゲームループ（`engine/`）
@@ -217,7 +218,7 @@ sequenceDiagram
 
 ### 6.3 描画（`render/`）
 
-- `Renderer` は、`draw(snapshot: MatchSnapshot, alpha: number): void` を持つ。`MatchSnapshot` は core の `MatchState` の読み取り専用ビュー。**描画は状態を書き換えない**。
+- `Renderer` は、`pushEvents(events: MatchEvent[]): void` と `draw(snapshot: MatchSnapshot, alpha: number): void` を持つ。`MatchRunner` が**ステップごとに** `pushEvents` でイベントをキューにため、`draw` がまとめて消費して演出（ヒットの効果、揺れ）を起こす。1フレームに複数ステップが進んでも、イベントを取りこぼさない（最終のスナップショットからは復元できないため）。キューは演出が終われば捨てる（上限つき）。`MatchSnapshot` は core の `MatchState` の読み取り専用ビュー。**描画は状態を書き換えない**。
 - Canvas 2D だけを使う（NFR-06）。内部の座標系は、ステージの**セル単位**（stage-format.md §4）。画面への変換は、`Renderer` の中だけで行う。
 - 基準の大きさは 1280 × 720。実際の画面サイズに合わせて CSS で拡大し、`devicePixelRatio` に合わせて内部解像度を設定する（ui-design.md §9）。
 - ファイターは、少数のパーツを合成して描き、アニメーション（Idle、Run、Jump、Fall、Attack、Hit、KO）を**パーツの移動・回転・拡大縮小**で表す（animation.md）。使うポーズの選択は、`MatchState` のファイターの状態（`fighter.state`）から決める。見た目は**当たり判定に影響しない**（REQ-FTR-05）。判定は常に core の長方形。
@@ -302,7 +303,8 @@ REQ-NET-02 は取り下げられた。本書は、通信対戦のコードを作
 
 ```ts
 interface HostLink {
-  /** 進行状態を定期的に取得する。失敗しても例外を投げず、最後の値を保つ */
+  /** 進行状態を定期的に取得する。失敗しても例外を投げない。
+   *  通信できない状態が failOpenAfterMs（既定 10 秒。event-control.md §10）続いたら `null` を通知する */
   subscribe(listener: (p: ProgressState | null) => void): Unsubscribe
   dispose(): void
 }
@@ -314,7 +316,7 @@ type ProgressState = { phase: Phase; sessionId: string; revision: number /* … 
 | H1 | **対戦の進行（`MatchRunner`、core）は `HostLink` を一切参照しない。** 親機が止まっても、対戦は止まらない |
 | H2 | `ui` が `ProgressState` を購読し、**新しく始める操作**（新しい対戦、設定の変更など）の可否だけを切り替える。すでに始まった対戦（READY、FIGHT、END）は、フェーズが変わっても終わるまで続ける（event-control.md §5.3、pc-ui.md §5.4） |
 | H3 | `sessionId` が変わったら、`ui` がセッションの全データを破棄して S01 に戻す（event-control.md §9.1）。破棄は、`ui` のセッションの口（§9.2）が担当する |
-| H4 | 親機に接続できない（`null`）あいだは、直前の状態で体験を続ける。取得は黙って再試行し、参加者にエラーを見せない（縮退動作。event-connection.md §7） |
+| H4 | 親機と通信できなくなっても、まず直前の状態で体験を続ける。取得は黙って再試行し、参加者にエラーを見せない。**通信できない状態が10秒（既定。event-control.md §10）続いたら、`HostLink` が `null` を通知し、`ui` は操作の可否を『すべて許可』にする（フェイルオープン）。** フェーズの制限が掛かったまま止まらないようにするため。通信が回復したら、最新の進行状態に追従する（`sessionId` が変わっていれば H3 で初期化）。ブラウザは更新しない（縮退動作。event-connection.md §7） |
 | H5 | 参加者のデータ（設定、ステージ、結果）は、親機へ送らない（event-control.md §8.2） |
 | H6 | 持ち帰り後（GitHub Pages）は、親機がない。`HostLink` は、接続先がない構成では**何もしない実装**（`NullHostLink`）に差し替える。画面の分岐は、`HostLink` の実装の差し替えだけで済む |
 
