@@ -48,6 +48,7 @@ TypeScript + React + Vite のフロントエンドを、次の2つの世界に�
 
 | ディレクトリ | 層 | 責務 | 既存/新規 |
 |---|---|---|---|
+| `src/model/` | core | 共通の型と定数（`CharacterConfig`、`StageData`、`MatchResult`、`ProgressState`、`SessionSnapshot` など）。ロジックを持たない。他の core・adapter・app が import できる最下位の層（[data-model.md](./data-model.md)） | **新規** |
 | `src/physics/` | core | 長方形（AABB）とタイルの衝突、重力、着地、場外判定。ステップ単位の純関数 | 既存 |
 | `src/combat/` | core | 攻撃のフレーム、ヒット判定、ダメージ蓄積、吹き飛ばし、無敵・ヒットストップ | 既存 |
 | `src/fighter/` | core | `CharacterConfig`、能力値の検証、能力値→物理パラメータの変換、ポイント制 | 既存 |
@@ -334,7 +335,7 @@ type ProgressState = { phase: Phase; sessionId: string; revision: number /* … 
 ### 9.2 セッションの状態
 
 - 参加者のデータ（`CharacterConfig` ×2、`StageData`、`MatchResult[]`、フロー）は、**1つのセッションストア**（React の `useReducer` + Context、または `useSyncExternalStore` 用の小さなストア。追加の状態管理ライブラリは入れない）が持つ。
-- 永続化は、`SessionRepository`（`load()` / `save(snapshot)` / `clear()`）の後ろに隠す。**保存方式（localStorage の使用有無、キー、`sessionId` の保持）は、データモデル（#18）で決める。** 本書で決めるのは、次の制約だけ。
+- 永続化は、`SessionRepository`（`load()` / `save(snapshot)` / `clear()`）の後ろに隠す。**保存方式は [data-model.md](./data-model.md) §6 で決定済み**（`localStorage` の1キー `ocbs.session`。`sessionId` を体験のデータと一緒に保存）。`ui` は、次の制約を守って `SessionRepository` を使う。
   - `load` / `save` は、利用できない環境（無効化、容量超過）でも**例外を投げず**、体験を止めない（try/catch。legacy-assessment.md §3.12 の作法）。
   - 保存するのは、設定・ステージ・戦の記録・フロー。対戦中の途中状態（`MatchState`）は保存せず、更新（再開）では S06 から再開する（user-flow.md §6.1.1）。
   - 読み込んだ値は、境界で**検証してから**使う（D5）。
@@ -380,7 +381,7 @@ type ProgressState = { phase: Phase; sessionId: string; revision: number /* … 
 ## 12. 例外・制約
 
 - **core にブラウザの API を入れない**（D1）。入れたくなったら、アダプタの側へ移すか、引数で注入する。
-- **スキャフォールドのディレクトリ名は変えない。** `render/`、`cpu/`、`share/` の3つを追加する。`net/` は、通信対戦ではなく親機連携のために使う。名前と中身の対応は、この文書（§4.1）が基準。
+- **スキャフォールドのディレクトリ名は変えない。** `render/`、`cpu/`、`share/`、`model/` の4つを追加する。`net/` は、通信対戦ではなく親機連携のために使う。名前と中身の対応は、この文書（§4.1）が基準。
 - 状態管理、ルーティング、ゲームエンジン（Phaser など）、物理エンジンのライブラリは**導入しない**。理由は、規模が小さく、決定性とテスト容易性を自前の純関数で確保できるため（system-overview.md §7.1「高度な物理エンジンは MVP に含めない」）。追加のライブラリが必要になったときは、この文書に理由を記録する。
 - ループの1ステップあたりの処理は、2人分の長方形判定と数式のみ。性能の目標は NFR-03（60 FPS）。実機での確認は、会場と同じ種類のPC・低性能スマホで行う（#51）。
 - 本書は構成を定める。`MatchState` の全フィールド、イベントの種類、`HUD` の値の詳細は、実装時（#20、#22〜#24）に決め、必要なら本書を更新する。
@@ -399,3 +400,4 @@ type ProgressState = { phase: Phase; sessionId: string; revision: number /* … 
 | 日付 | 変更内容 | 理由 | 影響範囲 |
 |---|---|---|---|
 | 2026-10-04 | 初版 | #17 の対応。通信対戦（REQ-NET-02）の取り下げを踏まえ、「ネットワーク対戦との切り分け」を、入力ソースの差し替え口として残す形にした | #20、#21、#22〜#24、#72、#18（保存方式）。src/ に `render/`、`cpu/`、`share/` を追加する |
+| 2026-10-05 | `model/` を追加（共通の型）。保存方式を data-model.md で確定 | #18 の対応 | data-model.md、src/model/ |
