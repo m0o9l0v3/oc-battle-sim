@@ -102,6 +102,12 @@ describe('「つぎへ」（全ポイント使用が条件）', () => {
     expect(markup).not.toContain('つかおう')
   })
 
+  it('合計が 20 でも、範囲外の値があれば押せない。理由が表示される', () => {
+    const markup = html(S(9, 3, 4, 4))
+    expect(nextTag(markup)).toMatch(/\sdisabled(=|\s|>)/)
+    expect(markup).toContain(m.nextBlockedInvalid)
+  })
+
   it('押せない理由は、ボタンから参照される（読み上げで伝わる）', () => {
     const markup = html(S(2, 2, 2, 2))
     const tag = nextTag(markup)

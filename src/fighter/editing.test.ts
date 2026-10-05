@@ -104,4 +104,40 @@ describe('「つぎへ」が押せない理由', () => {
   it('超えているとき（外部から入った値など）は、何ポイント多いかを返す', () => {
     expect(nextBlock(S(8, 8, 8, 8))).toEqual({ kind: 'OVER', points: 12 })
   })
+
+  it('合計が 20 でも、範囲外・整数でない値があれば、押せない（対戦開始の検証と同じ結論）', () => {
+    for (const bad of [
+      S(9, 3, 4, 4),
+      S(1, 7, 6, 6),
+      S(2.5, 5.5, 6, 6),
+      S(NaN, 5, 5, 5),
+      S(5, 5, 5, Infinity),
+    ]) {
+      expect(nextBlock(bad), JSON.stringify(bad)).toEqual({ kind: 'INVALID' })
+      expect(
+        canStartMatch({
+          schemaVersion: 1,
+          name: 'a',
+          stats: bad,
+          appearance: { body: 'b1', face: 'f1', color: 'c1', accessory: null },
+        }),
+      ).toBe(false)
+    }
+  })
+
+  it('「つぎへ」が押せる ⇔ 対戦開始の検証を通る（能力値について。9⁴ 通りすべてで一致）', () => {
+    for (let a = 1; a <= 9; a++)
+      for (let d = 1; d <= 9; d++)
+        for (let j = 1; j <= 9; j++)
+          for (let s = 1; s <= 9; s++) {
+            const stats = S(a, d, j, s)
+            const ok = canStartMatch({
+              schemaVersion: 1,
+              name: 'a',
+              stats,
+              appearance: { body: 'b1', face: 'f1', color: 'c1', accessory: null },
+            })
+            expect(nextBlock(stats) === null, `${a}${d}${j}${s}`).toBe(ok)
+          }
+  })
 })

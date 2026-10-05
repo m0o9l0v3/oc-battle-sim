@@ -13,6 +13,7 @@ export const messages = {
     /** 「つぎへ」が押せない理由 */
     nextBlocked: (n: number) => `あと ${n}ポイント つかおう`,
     nextBlockedOver: (n: number) => `${n}ポイント おおいよ。へらそう`,
+    nextBlockedInvalid: 'すうじが おかしいよ。ひょうじゅんに もどしてね',
     /** 「−」「＋」が押せない理由 */
     atMin: (min: number) => `${min}が いちばん ひくいよ`,
     atMax: (max: number) => `${max}が いちばん たかいよ`,

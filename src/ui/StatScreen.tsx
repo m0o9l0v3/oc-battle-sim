@@ -19,11 +19,13 @@ export type StatScreenProps = {
 export function StatScreen({ stats, onChange, onNext, onBack }: StatScreenProps) {
   const id = useId()
   const block = nextBlock(stats)
-  const reason = block
-    ? block.kind === 'REMAINING'
+  const reason = !block
+    ? null
+    : block.kind === 'REMAINING'
       ? m.nextBlocked(block.points)
-      : m.nextBlockedOver(block.points)
-    : null
+      : block.kind === 'OVER'
+        ? m.nextBlockedOver(block.points)
+        : m.nextBlockedInvalid
 
   return (
     <div className="stat-screen">
