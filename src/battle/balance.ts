@@ -42,22 +42,22 @@ export function createBot(slot: 0 | 1, ctx: MatchContext, seed: number) {
   let stuck = 0
   let wander = 0
   let wanderDir: 1 | -1 = 1
-  // 見切りの判断は、攻撃のたびに1回（毎ステップ引き直さない）
-  const dodgeMemo = new Map<number, boolean>()
-  const dodgeRoll = (step: number) => {
-    const key = Math.floor(step / 24)
-    let v = dodgeMemo.get(key)
-    if (v === undefined) {
-      v = rand() < 0.6
-      dodgeMemo.set(key, v)
-    }
-    return v
+  // 見切りの判断は、相手の攻撃ごとに1回（その攻撃の間は、同じ判断を保つ）。
+  // 攻撃の区切りは、攻撃の経過（t）が戻る・攻撃が始まることで見分ける（ヒットストップ中は t が止まるが、同じ攻撃）
+  let prevFoeT: number | null = null
+  let dodgeThis = false
+  const trackFoeAttack = (foeT: number | null) => {
+    if (foeT !== null && (prevFoeT === null || foeT < prevFoeT)) dodgeThis = rand() < 0.6
+    prevFoeT = foeT
   }
   const none: PlayerInput = { left: false, right: false, jumpPressed: false, attackPressed: false }
 
   return (s: MatchState): PlayerInput => {
     const me = s.fighters[slot]
     const foe = s.fighters[1 - slot]
+    // 相手の攻撃の区切りは、毎ステップ追う（早期に返す場面でも、攻撃の始まりを見逃さない）
+    const foeAtk = foe.combat.attack
+    trackFoeAttack(foeAtk ? foeAtk.t : null)
     if (s.phase !== 'fight' || me.combat.down) return none
 
     const toCenter = cx - me.body.x
@@ -100,7 +100,6 @@ export function createBot(slot: 0 | 1, ctx: MatchContext, seed: number) {
 
     // 間合い: 相手が攻撃を出しているとき（発生・持続）は、届かない距離まで下がる（見切り）。
     // 攻撃を空振りした相手の硬直には、近づいて攻撃する（差し込み）。移動速度が高いほど、有利になる
-    const foeAtk = foe.combat.attack
     const foeThreat =
       foeAtk !== null && foeAtk.t < ctx.combat.attackStartup + ctx.combat.attackActive
     if (
@@ -108,7 +107,7 @@ export function createBot(slot: 0 | 1, ctx: MatchContext, seed: number) {
       Math.abs(dx) < 1.6 &&
       Math.abs(dyFoe) < 0.6 &&
       me.combat.attack === null &&
-      dodgeRoll(s.step)
+      dodgeThis
     ) {
       return { left: dx > 0, right: dx < 0, jumpPressed: false, attackPressed: false }
     }

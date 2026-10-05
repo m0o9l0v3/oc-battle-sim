@@ -24,12 +24,12 @@ damageDealt = BASE_DAMAGE × (1 + K_attack × (attackPower − 5))
 | 名前 | 値 | 内容 |
 |---|---|---|
 | `BASE_DAMAGE` | **12 %** | 標準（`attackPower` 5）の1回のダメージ |
-| `K_attack` | **0.04** | 1ポイントあたり標準比 ±4%（[stat-system.md](../02-fighter/stat-system.md) §6.2。#25 で 0.10 から調整） |
+| `K_attack` | **0.03** | 1ポイントあたり標準比 ±3%（[stat-system.md](../02-fighter/stat-system.md) §6.2。#25 で 0.10 から調整） |
 
 | `attackPower` | 2 | 3 | 4 | **5** | 6 | 7 | 8 |
 |---|---|---|---|---|---|---|---|
-| 1回のダメージ（%） | 10.56 | 11.04 | 11.52 | **12.0** | 12.48 | 12.96 | 13.44 |
-| 100 % に届くまでのヒット数 | 10 | 10 | 9 | **9** | 9 | 8 | 8 |
+| 1回のダメージ（%） | 10.92 | 11.28 | 11.64 | **12.0** | 12.36 | 12.72 | 13.08 |
+| 100 % に届くまでのヒット数 | 10 | 9 | 9 | **9** | 9 | 8 | 8 |
 
 - 与えるダメージは、**攻撃する側の `attackPower` だけ**で決まる。**相手の `defense` では変わらない**（`defense` は吹き飛ばされる量だけを変える。[knockback.md](./knockback.md)）。
 - 乱数、会心（クリティカル）、連続ヒットによる補正は設けない（決定的）。
@@ -63,9 +63,9 @@ damage_new = min(DAMAGE_MAX, damage_old + damageDealt)
 | 場面 | 計算 | 結果 |
 |---|---|---|
 | 標準（5）が、標準の相手に、3回ヒット | 12 × 3 | 36 % |
-| `attackPower` 8 が、2回ヒット | 13.44 × 2 | 26.88 %（表示 26 %） |
-| `attackPower` 2 が、5回ヒット | 10.56 × 5 | 52.8 %（表示 52 %） |
-| `attackPower` 8 が、7回ヒット | 13.44 × 7 | 94.08 %（表示 94 %） |
+| `attackPower` 8 が、2回ヒット | 13.08 × 2 | 26.16 %（表示 26 %） |
+| `attackPower` 2 が、5回ヒット | 10.92 × 5 | 54.6 %（表示 54 %） |
+| `attackPower` 8 が、7回ヒット | 13.08 × 7 | 91.56 %（表示 91 %） |
 
 ## 7. Battle Report との関係
 
@@ -78,7 +78,7 @@ damage_new = min(DAMAGE_MAX, damage_old + damageDealt)
 |---|---|
 | 係数を調整した（#25） | 保存済みの `CharacterConfig` は、能力値だけを持つ。ダメージは、実行時に計算する |
 | 上限 999 % | 蓄積は、これ以上増えない。吹き飛ばしの式は、999 % のまま計算する |
-| ダメージが 0 以下になる設定 | `attackPower` は 2 以上のため、0 以下にならない（最小 10.56 %） |
+| ダメージが 0 以下になる設定 | `attackPower` は 2 以上のため、0 以下にならない（最小 10.92 %） |
 
 ## 9. Acceptance Criteria
 
@@ -92,4 +92,4 @@ damage_new = min(DAMAGE_MAX, damage_old + damageDealt)
 | 日付 | 変更内容 | 理由 | 影響範囲 |
 |---|---|---|---|
 | 2026-10-04 | 初版。係数は暫定 | #11 の対応 | #23、#25、#37、#38 |
-| 2026-10-05 | `K_attack` を 0.10 → 0.04 に調整。ダメージの表（§3）と計算の例（§6）を更新 | #25 のバランス調整（[balance.md](./balance.md)） | stat-system.md、combat-system.md §11、battle-report.md、comparison.md |
+| 2026-10-05 | `K_attack` を 0.10 → 0.03 に調整。ダメージの表（§3）と計算の例（§6）を更新 | #25 のバランス調整（[balance.md](./balance.md)） | stat-system.md、combat-system.md §11、battle-report.md、comparison.md |
