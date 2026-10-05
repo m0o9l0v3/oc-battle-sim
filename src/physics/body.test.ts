@@ -371,6 +371,7 @@ describe('ステージ検証の基準との整合（validation.md §5.2 の「�
   }
 
   it.each([
+    [2, 1.57],
     [1, 2.14],
     [0, 2.58],
     [-1, 2.84],
@@ -379,5 +380,19 @@ describe('ステージ検証の基準との整合（validation.md §5.2 の「�
     [-4, 3.41],
   ])('rise %i のとき、飛べる距離は約 %f セル', (rise, expected) => {
     expect(reach(rise)).toBeCloseTo(expected, 1)
+  })
+
+  it('許す隙間（rise +2〜0 は 1 セル、−1 以下は rise −1 まで 1 セル、−2 以下は 2 セル）に、70 % の余裕がある', () => {
+    for (const [rise, gap] of [
+      [2, 1],
+      [1, 1],
+      [0, 1],
+      [-1, 1],
+      [-2, 2],
+      [-3, 2],
+      [-4, 2],
+    ] as const) {
+      expect(reach(rise) * 0.7, `rise ${rise}`).toBeGreaterThanOrEqual(gap)
+    }
   })
 })
