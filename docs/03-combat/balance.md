@@ -177,10 +177,17 @@
 ### 7.1 再実行の方法
 
 ```bash
+# 係数を変えたときの検査（11 配分の総当たり。数十秒〜1 分）
+BALANCE_CHECK=1 npx vitest run src/battle/balance.test.ts
+
+# 総当たりの表と、調整前・調整後の平均の勝率を、console に出す（この文書に転記する）
 BALANCE_REPORT=1 npx vitest run src/battle/balance.test.ts
 ```
 
-総当たりの表と、調整前・調整後の平均の勝率を、`console` に出す。係数を変えたら、この表と、関連する文書の数値（[stat-system.md](../02-fighter/stat-system.md) §6、damage.md、knockback.md、combat-system.md §11、stage-format.md §7.1、recovery.md §7、validation.md §5）を、合わせて更新する。通常のテスト（`npx vitest run`）では、**11 の配分の、平均の勝率が 30 % より大きく 70 % より小さいこと**と、**どの配分にも、勝ち越せない相手がいること（無敗の配分がない）**を検査する。
+係数を変えたら、この表と、関連する文書の数値（[stat-system.md](../02-fighter/stat-system.md) §6、damage.md、knockback.md、combat-system.md §11、stage-format.md §7.1、recovery.md §7、validation.md §5）を、合わせて更新する。
+
+- **通常のテスト（`npm test`）では、重い総当たりを実行しない**（CI を遅くしないため）。軽い検査（標準 × 6 つの特化配分、各 4 シード）だけを実行し、すべての試合が決着し、両方に勝ち負けがあることを確かめる。
+- `BALANCE_CHECK=1` の検査は、**11 の配分の、平均の勝率が 30 % より大きく 70 % より小さいこと**と、**どの配分にも、勝ち越せない相手がいること（無敗の配分がない）**を確かめる。係数・ルール・ステージを変えたとき、リリースの前に、実行する。
 
 ## 8. Acceptance Criteria
 

@@ -99,14 +99,27 @@ function winRates(opts: Parameters<typeof runMatchup>[4], seeds: number) {
   }))
 }
 
-// 結果の表は、BALANCE_REPORT=1 で実行したときに、console に出す（docs/03-combat/balance.md に転記する）
-const report = (globalThis as { process?: { env: Record<string, string | undefined> } }).process
-  ?.env?.BALANCE_REPORT
+// 重い検査と、結果の表は、環境変数で有効にする（通常のテストを遅くしないため。docs/03-combat/balance.md §7.1）
+//   BALANCE_CHECK=1   … 11 配分の総当たり（12 シード）で、勝率の偏りを検査する（約 1 分）
+//   BALANCE_REPORT=1  … 総当たりの表を console に出す（balance.md に転記する）
+const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env
+const report = env?.BALANCE_REPORT
+const full = Boolean(env?.BALANCE_CHECK || report)
 
 describe('バランス（代表的な配分の総当たり。調整後の係数）', () => {
-  it(
-    'どの配分も、勝率が極端に偏らない（特定の配分が常に勝つ・常に負ける状態でない）',
-    { timeout: 120_000 },
+  it('軽い検査: 標準と、極端な配分の対戦が、すべて決着し、勝敗が極端に偏らない', () => {
+    // 標準 × 6 つの特化配分。左右を入れ替えて、各 4 シード
+    for (const [name, stats] of PRESETS.slice(1, 7)) {
+      const m = runMatchup(stage, std, stats, 4)
+      expect(m.winsA + m.winsB + m.draws, name).toBe(m.games)
+      expect(m.winsA, name).toBeGreaterThan(0)
+      expect(m.winsB, name).toBeGreaterThan(0)
+    }
+  })
+
+  it.skipIf(!full)(
+    '全体の検査: どの配分も、勝率が極端に偏らない。無敗の配分がない',
+    { timeout: 600_000 },
     () => {
       for (const r of winRates({}, 12)) {
         expect(r.mean, r.name).toBeGreaterThan(30)
@@ -117,34 +130,37 @@ describe('バランス（代表的な配分の総当たり。調整後の係数�
     },
   )
 
-  it('総当たりの結果（BALANCE_REPORT=1 のとき、表を出す）', { timeout: 900_000 }, () => {
-    if (!report) return
-    const seeds = 20
-    const rows: string[] = []
-    for (let i = 0; i < 7; i++) {
-      for (let j = i + 1; j < 7; j++) {
-        const m = runMatchup(stage, PRESETS[i][1], PRESETS[j][1], seeds)
-        rows.push(
-          `${PRESETS[i][0]} | ${PRESETS[j][0]} | ${m.winsA} | ${m.winsB} | ${m.draws} | ${m.avgFightSec.toFixed(0)} | ${m.avgKos.toFixed(1)} | ${m.avgHits.toFixed(0)} | ${m.reasons['stocks'] ?? 0}/${m.games}`,
-        )
-      }
-    }
-    const old = {
-      combat: { ...DEFAULT_COMBAT_CONFIG, kAttack: 0.1, kDefense: 0.1 },
-      coeffs: { kSpeed: 0.1, kJump: 0.1 },
-    }
-    const before = winRates(old, seeds)
-    const after = winRates({}, seeds)
-    console.log(
-      'BALANCE\n' +
-        rows.join('\n') +
-        '\n--- mean win rate (before | after)\n' +
-        before
-          .map(
-            (r, i) =>
-              `${r.name} | ${r.mean.toFixed(0)} (${r.worst.toFixed(0)}) | ${after[i].mean.toFixed(0)} (${after[i].worst.toFixed(0)})`,
+  it.skipIf(!report)(
+    '総当たりの結果（BALANCE_REPORT=1 のとき、表を出す）',
+    { timeout: 900_000 },
+    () => {
+      const seeds = 20
+      const rows: string[] = []
+      for (let i = 0; i < 7; i++) {
+        for (let j = i + 1; j < 7; j++) {
+          const m = runMatchup(stage, PRESETS[i][1], PRESETS[j][1], seeds)
+          rows.push(
+            `${PRESETS[i][0]} | ${PRESETS[j][0]} | ${m.winsA} | ${m.winsB} | ${m.draws} | ${m.avgFightSec.toFixed(0)} | ${m.avgKos.toFixed(1)} | ${m.avgHits.toFixed(0)} | ${m.reasons['stocks'] ?? 0}/${m.games}`,
           )
-          .join('\n'),
-    )
-  })
+        }
+      }
+      const old = {
+        combat: { ...DEFAULT_COMBAT_CONFIG, kAttack: 0.1, kDefense: 0.1 },
+        coeffs: { kSpeed: 0.1, kJump: 0.1 },
+      }
+      const before = winRates(old, seeds)
+      const after = winRates({}, seeds)
+      console.log(
+        'BALANCE\n' +
+          rows.join('\n') +
+          '\n--- mean win rate (before | after)\n' +
+          before
+            .map(
+              (r, i) =>
+                `${r.name} | ${r.mean.toFixed(0)} (${r.worst.toFixed(0)}) | ${after[i].mean.toFixed(0)} (${after[i].worst.toFixed(0)})`,
+            )
+            .join('\n'),
+      )
+    },
+  )
 })
