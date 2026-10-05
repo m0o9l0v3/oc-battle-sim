@@ -1,0 +1,6 @@
+export * from './accessories.ts'
+export * from './bodies.ts'
+export * from './compose.ts'
+export * from './faces.ts'
+export * from './palette.ts'
+export * from './types.ts'

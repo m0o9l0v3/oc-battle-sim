@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { DEFAULT_STATS } from './fighter/index.ts'
 import type { Stats } from './model/index.ts'
 import { DEMO_STAGE } from './ui/demoStage.ts'
+import { FighterGallery } from './ui/FighterGallery.tsx'
 import { KeyCheck } from './ui/KeyCheck.tsx'
 import { StageCanvas } from './ui/StageCanvas.tsx'
 import { StatScreen } from './ui/StatScreen.tsx'
@@ -24,6 +25,7 @@ export default function App() {
         onBack={() => {}}
       />
       {done && <p role="status">つぎの がめんへ すすむよ（{JSON.stringify(stats)}）</p>}
+      <FighterGallery />
       <StageCanvas stage={DEMO_STAGE} />
       <KeyCheck />
     </main>
