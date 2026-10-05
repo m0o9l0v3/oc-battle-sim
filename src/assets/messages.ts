@@ -45,4 +45,19 @@ export const messages = {
     /** 標準（5）との比較の見出し */
     compareNote: 'ひょうじゅん（5）と くらべた わりあい',
   },
+  appearance: {
+    title: 'ファイターを つくろう',
+    groups: { body: 'からだ', face: 'かお', color: 'いろ', accessory: 'かざり' },
+    none: 'なし',
+    name: 'なまえ',
+    namePlaceholder: (defaultName: string) => `${defaultName}（かえなければ これに なるよ）`,
+    nameRemaining: (n: number) => `あと ${n}もじ`,
+    nameMax: '10もじまで',
+    nameBytesNote: 'えもじは ながい ぶん、10もじ より すくなく なるよ',
+    nameNotice: 'ほんとうの なまえは いれないでね（あだなに しよう）',
+    random: 'ランダム',
+    next: 'つぎへ',
+    back: 'もどる',
+    previewLabel: (name: string) => `${name}の みため（うごいているよ）`,
+  },
 } as const

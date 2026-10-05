@@ -122,3 +122,158 @@ main {
   margin: 0;
   min-height: 1.2em;
 }
+
+/* 外観の設定（S02。ui-design.md §7.2）。ビジュアルテーマ（#36）ができたら、色・大きさをそちらへ寄せる */
+.appearance-screen {
+  max-width: 960px;
+}
+.appearance-screen__heading {
+  margin: 0 0 1rem;
+  font-size: 1.5rem;
+}
+.appearance-screen__body {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+.appearance-screen__preview {
+  flex: none;
+  display: grid;
+  justify-items: center;
+  background: #262f45;
+  border-radius: 12px;
+  padding: 0.5rem 0.75rem;
+  color: #fff;
+}
+.appearance-screen__preview-name {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.appearance-screen__choices {
+  flex: 1;
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.choice-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.choice-group legend {
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 0;
+  margin-bottom: 0.25rem;
+}
+.choice-group__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.choice {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  min-width: 4.2rem;
+  padding: 0.35rem 0.4rem;
+  border: 2px solid #8fa3c8;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #fff;
+}
+.choice:hover {
+  border-color: #4a63a0;
+}
+.choice[data-checked='true'] {
+  border-color: #1d4ed8;
+  background: #e8efff;
+  box-shadow: 0 0 0 2px #1d4ed8;
+}
+.choice:focus-within {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
+}
+.choice input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.choice__thumb {
+  display: block;
+  height: 56px;
+  overflow: hidden;
+}
+.choice__thumb svg {
+  display: block;
+}
+/* 顔・かざりは、見分けやすいよう、頭のあたりを大きくする */
+.choice__thumb--face svg {
+  transform: scale(2.6);
+  transform-origin: 50% 17%;
+}
+.choice__thumb--accessory svg {
+  transform: scale(1.7);
+  transform-origin: 50% 26%;
+}
+.choice__thumb--face,
+.choice__thumb--accessory {
+  width: 56px;
+}
+.choice__swatch {
+  display: block;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #2a2340;
+}
+.choice__none {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  font-size: 1.5rem;
+  color: #666;
+}
+.choice__label {
+  font-size: 0.9rem;
+}
+.name-field {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+}
+.name-field__label {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.name-field__input {
+  font-size: 1.1rem;
+  padding: 0.4rem 0.6rem;
+  border: 2px solid #8fa3c8;
+  border-radius: 8px;
+  min-width: 0;
+}
+.name-field__bytes,
+.name-field__notice {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.name-field__bytes {
+  min-height: 1.2em;
+}
+.appearance-screen__footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+@media (max-width: 720px) {
+  .appearance-screen__body {
+    flex-direction: column;
+  }
+}
