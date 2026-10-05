@@ -27,21 +27,15 @@ describe('開発用ページ（?dev）', () => {
     expect(isDevPage('?developer=1')).toBe(false)
   })
 
-  it('部品の一覧が、すべて出る。見出しの id は、重ならない', () => {
-    // DevPage は、リンクのために window を使う。描画だけを確かめるため、最小の window を用意する
-    const g = globalThis as { window?: unknown }
-    const before = g.window
-    g.window = { location: { pathname: '/', search: '?dev' } }
-    try {
-      const html = renderToString(<App dev />)
-      expect(html).toContain('開発用')
-      for (const s of DEV_SECTIONS) {
-        expect(html).toContain(s.title)
-        expect(html).toContain(`href="#${s.id}"`)
-        expect(html).toContain(`id="${s.id}"`)
-      }
-    } finally {
-      g.window = before
+  it('部品の一覧が、すべて出る（window がない環境でも描画できる）。見出しの id は、重ならない', () => {
+    expect(typeof window).toBe('undefined')
+    const html = renderToString(<App dev />)
+    expect(html).toContain('開発用')
+    expect(html).toContain('href="/"') // 通常の画面へ戻るリンク
+    for (const s of DEV_SECTIONS) {
+      expect(html).toContain(s.title)
+      expect(html).toContain(`href="#${s.id}"`)
+      expect(html).toContain(`id="${s.id}"`)
     }
     expect(new Set(DEV_SECTIONS.map((s) => s.id)).size).toBe(DEV_SECTIONS.length)
   })

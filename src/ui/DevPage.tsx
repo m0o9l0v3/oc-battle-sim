@@ -43,6 +43,9 @@ export const DEV_SECTIONS: DevSection[] = [
   { id: 'keys', title: 'キーの確認（#21）', render: () => <KeyCheck /> },
 ]
 
+/** 通常の画面へ戻るリンク。window がない環境（サーバー側の描画、テスト）でも落ちない */
+const returnHref = () => (typeof window !== 'undefined' ? window.location.pathname : '/')
+
 /** 開発用ページ（URL に `?dev`）。参加者の画面ではない */
 export function DevPage() {
   return (
@@ -58,7 +61,7 @@ export function DevPage() {
           ))}
         </ul>
         <p>
-          <a href={window.location.pathname}>通常の画面にもどる</a>
+          <a href={returnHref()}>通常の画面にもどる</a>
         </p>
       </nav>
       {DEV_SECTIONS.map((s) => (
