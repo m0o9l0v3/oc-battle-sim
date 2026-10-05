@@ -1,2 +1,6 @@
+export * from './blast.ts'
 export * from './control.ts'
 export * from './input.ts'
+export * from './match.ts'
+export * from './outcome.ts'
+export * from './rules.ts'
