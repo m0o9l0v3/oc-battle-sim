@@ -56,18 +56,28 @@ export function partSvg(part: Part, color: ColorId): string {
   return part.shapes.map((s) => shapeSvg(s, color)).join('')
 }
 
-/** 部位の変換を、関節を中心に（親の座標で）かける。at は、親の座標での関節の位置 */
-function place(
-  at: { x: number; y: number },
-  t: PartTransform | undefined,
-  inner: string,
-  extra = '',
-): string {
+/**
+ * 部位の変換（関節が原点）。at は、親の座標での関節の位置。
+ * 角度の向き（animation.md §4.2）: 腕・脚（下に垂れる。hangs）は、正が前方へ振る。
+ * 胴体・頭（上に伸びる）は、正が前傾（向いている側へ倒れる）。SVG の rotate は、時計回りが正（上の端が右へ動く）
+ */
+function xf(at: { x: number; y: number }, t: PartTransform | undefined, hangs: boolean): string {
   const parts = [`translate(${round(at.x + (t?.dx ?? 0))} ${round(at.y - (t?.dy ?? 0))})`]
-  if (t?.rot) parts.push(`rotate(${round(-t.rot)})`) // 正の角度は前方（右）へ振る。SVG の rotate は時計回りが正
+  if (t?.rot) parts.push(`rotate(${round(hangs ? -t.rot : t.rot)})`)
   if (t?.sx !== undefined || t?.sy !== undefined) parts.push(`scale(${t?.sx ?? 1} ${t?.sy ?? 1})`)
-  return `<g transform="${parts.join(' ')}"${extra}>${inner}</g>`
+  return parts.join(' ')
 }
+
+/** 変換の連なり（親 → 子）を、入れ子の <g> にして、中身を包む */
+const nest = (chain: string[], inner: string): string =>
+  chain.reduceRight((acc, tr) => `<g transform="${tr}">${acc}</g>`, inner)
+
+/**
+ * 重ね順の1層。親子の変換の連なり（chain）は、層ごとに持つので、枝をまたいだ重ね順
+ * （奥の腕 → 奥の脚 → 胴体 → 手前の脚 → 頭 → 顔 → 手前の腕 → アクセサリー）を、そのまま守れる
+ */
+const layer = (name: string, chain: string[], inner: string): string =>
+  `<g data-part="${name}">${nest(chain, inner)}</g>`
 
 /** 腕・脚の、奥側の暗さ（陰影を重ねる） */
 const backOverlay = (part: Part): string =>
@@ -118,35 +128,38 @@ export function composeFighterBody(opts: ComposeOptions): string {
   const facePart = faceId === 'normal' ? FACES[a.face].part : EXPRESSIONS[faceId].part
   const faceSvg = `<g transform="translate(${body.face.x} ${body.face.y}) scale(${body.face.s})">${partSvg(facePart, c)}</g>`
 
-  const armF = place(body.at.armF, t('armF'), partSvg(body.arm, c))
-  const armB = place(body.at.armB, t('armB'), partSvg(body.arm, c) + backOverlay(body.arm))
+  const torsoChain = [xf(body.at.torso, t('torso'), false)]
+  const headChain = [...torsoChain, xf(body.at.head, t('head'), false)]
+  const armFChain = [...torsoChain, xf(body.at.armF, t('armF'), true)]
+  const armBChain = [...torsoChain, xf(body.at.armB, t('armB'), true)]
+  const legFChain = [xf(body.at.legF, t('legF'), true)]
+  const legBChain = [xf(body.at.legB, t('legB'), true)]
 
-  // 頭（顔と、頭・顔のスロットのアクセサリー）。頭のアクセサリーは、頭に付いて動く
-  const headInner =
-    partSvg(body.head, c) + faceSvg + (slot === 'head' || slot === 'face' ? accSvg : '')
-  const head = place(body.at.head, t('head'), headInner)
+  // 奥 → 手前（character-design.md §4.2）。頭・顔・首のアクセサリーは、いちばん手前
+  const layers = [
+    slot === 'back' ? layer('accessory-back', torsoChain, accSvg) : '',
+    layer('armB', armBChain, partSvg(body.arm, c) + backOverlay(body.arm)),
+    layer('legB', legBChain, partSvg(body.leg, c) + backOverlay(body.leg)),
+    layer('torso', torsoChain, partSvg(body.torso, c)),
+    layer('legF', legFChain, partSvg(body.leg, c)),
+    layer('head', headChain, partSvg(body.head, c)),
+    layer('face', headChain, faceSvg),
+    layer('armF', armFChain, partSvg(body.arm, c)),
+    slot === 'head' || slot === 'face' ? layer('accessory-head', headChain, accSvg) : '',
+    slot === 'neck' ? layer('accessory-neck', torsoChain, accSvg) : '',
+  ]
 
-  // 胴体: 背中のアクセサリー → 奥の腕 → 胴体 → 頭 → 手前の腕 → 首のアクセサリー
-  const torsoInner =
-    (slot === 'back' ? accSvg : '') +
-    armB +
-    partSvg(body.torso, c) +
-    head +
-    armF +
-    (slot === 'neck' ? accSvg : '')
-  const torso = place(body.at.torso, t('torso'), torsoInner)
-
-  const legB = place(body.at.legB, t('legB'), partSvg(body.leg, c) + backOverlay(body.leg))
-  const legF = place(body.at.legF, t('legF'), partSvg(body.leg, c))
-
+  // ファイター全体（root）: 足元を基準に拡大縮小、体の中心（身長の半分）を中心に回転。
+  // 左向きは、左右反転。反転の内側で動かすので、前方への移動（dx）・回転も、向きに合わせて反転する
   const root = t('root')
   const flip = opts.facing === -1 ? ' scale(-1 1)' : ''
-  const rootT = `translate(0 ${round(100 - (root?.dy ?? 0))}) translate(${round(root?.dx ?? 0)} 0)${flip}${
+  const scale =
     root?.sx !== undefined || root?.sy !== undefined
       ? ` scale(${root?.sx ?? 1} ${root?.sy ?? 1})`
       : ''
-  } translate(0 -100)`
-  return `<g transform="${rootT}">${legB}${torso}${legF}</g>`
+  const spin = root?.rot ? ` translate(0 -50) rotate(${round(root.rot)}) translate(0 50)` : ''
+  const rootT = `translate(0 ${round(100 - (root?.dy ?? 0))})${flip} translate(${round(root?.dx ?? 0)} 0)${spin}${scale} translate(0 -100)`
+  return `<g transform="${rootT}">${layers.join('')}</g>`
 }
 
 /** ファイター1体の、単独の SVG（プレビュー・素材の確認用） */

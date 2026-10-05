@@ -386,6 +386,82 @@ describe('組み立て（重ね順・関節・向き）', () => {
     expect(composeFighterBody({ appearance: base })).not.toContain('scale(-1 1)')
   })
 
+  describe('レビュー指摘の回帰', () => {
+    const idx = (svg: string, part: string) => svg.indexOf(`data-part="${part}"`)
+
+    it('重ね順は、枝をまたいで守られる: 背中 → 奥の腕 → 奥の脚 → 胴体 → 手前の脚 → 頭 → 顔 → 手前の腕 → 首・頭のアクセサリー', () => {
+      const svg = composeFighterBody({
+        appearance: { ...base, accessory: 'a6' },
+        pose: { armF: { rot: 120 }, legF: { rot: 40 } },
+      })
+      const order = ['accessory-back', 'armB', 'legB', 'torso', 'legF', 'head', 'face', 'armF']
+      const pos = order.map((n) => idx(svg, n))
+      expect(pos.every((p) => p >= 0)).toBe(true)
+      expect([...pos].sort((x, y) => x - y)).toEqual(pos)
+      // 首・頭のアクセサリーは、手前の腕よりも、さらに手前
+      const neck = composeFighterBody({ appearance: { ...base, accessory: 'a3' } })
+      expect(idx(neck, 'accessory-neck')).toBeGreaterThan(idx(neck, 'armF'))
+      const hat = composeFighterBody({ appearance: { ...base, accessory: 'a1' } })
+      expect(idx(hat, 'accessory-head')).toBeGreaterThan(idx(hat, 'armF'))
+    })
+
+    it('手前の脚は、頭・手前の腕より奥。奥の腕は、奥の脚より奥（脚が頭の上に描かれない）', () => {
+      const svg = composeFighterBody({ appearance: base })
+      expect(idx(svg, 'legF')).toBeLessThan(idx(svg, 'head'))
+      expect(idx(svg, 'legF')).toBeLessThan(idx(svg, 'armF'))
+      expect(idx(svg, 'armB')).toBeLessThan(idx(svg, 'legB'))
+    })
+
+    it('頭・顔のアクセサリーは、頭の変換（回転）の内側にあり、頭と一緒に動く', () => {
+      const svg = composeFighterBody({
+        appearance: { ...base, accessory: 'a1' },
+        pose: { head: { rot: 20 } },
+      })
+      const layerStart = svg.indexOf('data-part="accessory-head"')
+      const layerHtml = svg.slice(layerStart, svg.indexOf(ACCESSORIES.a1.part.shapes[0].d))
+      expect(layerHtml).toContain('rotate(20)') // 頭の前傾（上に伸びる部位は、正の角度が前傾 = SVG では時計回り）
+    })
+
+    it('胴体・頭の正の角度は前傾（rotate の符号は、腕・脚と逆）', () => {
+      const svg = composeFighterBody({
+        appearance: base,
+        pose: { torso: { rot: 14 }, head: { rot: 8 }, armF: { rot: 95 }, legF: { rot: 40 } },
+      })
+      expect(svg).toContain('rotate(14)') // 胴体（前傾）
+      expect(svg).toContain('rotate(8)') // 頭（前傾）
+      expect(svg).toContain('rotate(-99)') // 腕: 基準 +4 に 95 を足し、前方へ（逆回り）
+      expect(svg).toContain('rotate(-43)') // 脚: 基準 +3 に 40
+    })
+
+    it('root の回転が、体の中心（身長の半分）を中心にかかる。足元を基準にした拡大縮小は、そのまま', () => {
+      const svg = composeFighterBody({
+        appearance: base,
+        pose: { root: { rot: 720, sx: 0.95, sy: 1.08 } },
+      })
+      expect(svg).toContain('translate(0 -50) rotate(720) translate(0 50)')
+      // 回転は、拡大縮小の外側（足元基準の拡大縮小の結果を、体の中心で回す）
+      expect(svg.indexOf('rotate(720)')).toBeLessThan(svg.indexOf('scale(0.95 1.08)'))
+      expect(svg.indexOf('scale(0.95 1.08)')).toBeLessThan(svg.indexOf('translate(0 -100)'))
+      expect(composeFighterBody({ appearance: base })).not.toContain('translate(0 -50) rotate(')
+    })
+
+    it('左向きでは、root の前方への移動（dx）と回転も、向きに合わせて反転する（反転の内側にある）', () => {
+      const svg = composeFighterBody({
+        appearance: base,
+        facing: -1,
+        pose: { root: { dx: 5, rot: 10 } },
+      })
+      const flip = svg.indexOf('scale(-1 1)')
+      expect(flip).toBeGreaterThan(-1)
+      expect(svg.indexOf('translate(5 0)')).toBeGreaterThan(flip)
+      expect(svg.indexOf('rotate(10)')).toBeGreaterThan(flip)
+      // 右向きでは、反転しない
+      expect(composeFighterBody({ appearance: base, pose: { root: { dx: 5 } } })).not.toContain(
+        'scale(-1 1)',
+      )
+    })
+  })
+
   it('決定的: 同じ入力から、同じ出力', () => {
     const a = fighterSvg({ appearance: { body: 'b3', face: 'f4', color: 'c5', accessory: 'a2' } })
     expect(
