@@ -100,6 +100,9 @@ export class KeyboardInput {
         const s = this.state[slot][action]
         if (s.down.size > 0) changed = true
         s.down.clear()
+        // ラッチも捨てる（フォーカスが戻った最初のサンプルで、以前の入力を実行しない）
+        s.tapped = false
+        s.edge = false
       }
     }
     if (changed) this.notify()

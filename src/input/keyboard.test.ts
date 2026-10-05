@@ -156,11 +156,17 @@ describe('ブラウザとの付き合い', () => {
     t.down('KeyD')
     t.down('Numpad4')
     t.target.dispatchEvent(new Event('blur'))
-    t.s1() // ラッチ分を消費
-    t.s2()
     expect(t.s1()).toEqual(NO_INPUT)
     expect(t.s2()).toEqual(NO_INPUT)
     expect(t.kb.pressedKeys().size).toBe(0)
+  })
+
+  it('blur の前に押して、まだサンプルされていない入力（ラッチ）も捨てる', () => {
+    const t = setup()
+    t.down('KeyW')
+    t.down('KeyA')
+    t.target.dispatchEvent(new Event('blur'))
+    expect(t.s1()).toEqual(NO_INPUT)
   })
 
   it('dispose のあとは、イベントを受け取らない', () => {
