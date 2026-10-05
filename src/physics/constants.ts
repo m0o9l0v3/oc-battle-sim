@@ -16,7 +16,9 @@ export const BASE_SPEED = 3.75
 export const BASE_JUMP_HEIGHT = 81 / 48
 
 /** 能力値 1 ポイントあたりの変化の係数（factor = 1 + K × (v − 5)）。stat-system.md §6.2 */
-export const K_SPEED = 0.1
+// 調整後の値（#25。docs/03-combat/balance.md）。speed は、0.10 だと、速さが勝敗を支配したため 0.075 に下げた。
+// 最小の移動速度は上がる（2.63 → 2.91 セル/秒）ので、ステージ検証の到達可能性は、より安全側になる
+export const K_SPEED = 0.075
 export const K_JUMP = 0.1
 
 /** 空中ジャンプの回数（地面のジャンプは別。recovery.md §3.1） */

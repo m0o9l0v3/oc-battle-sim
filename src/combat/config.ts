@@ -29,11 +29,11 @@ export type CombatConfig = {
 
 export const DEFAULT_COMBAT_CONFIG: CombatConfig = {
   baseDamage: 12,
-  kAttack: 0.1,
+  kAttack: 0.03, // 調整後（#25。0.10 だと、攻撃と防御を高めた配分が勝ち続けたため）
   damageMax: 999,
   kbBase: 8,
   kbScale: 0.15,
-  kDefense: 0.1,
+  kDefense: 0.03, // 同上
   kbAngleDeg: 65,
   hitstunBaseMs: 150,
   hitstunScaleMs: 25,
