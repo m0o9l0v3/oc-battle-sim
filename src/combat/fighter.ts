@@ -34,6 +34,8 @@ export type CombatState = {
   /** ヒットストップの残りステップ。0 より大きい間は、位置・速度・タイマーがすべて止まる */
   hitstop: number
   attack: AttackState | null
+  /** 撃墜中・リスポーン待ち。操作できず、攻撃を受けず、攻撃もしない（battle が設定する） */
+  down: boolean
 }
 
 export const createCombatState = (): CombatState => ({
@@ -42,6 +44,7 @@ export const createCombatState = (): CombatState => ({
   invuln: 0,
   hitstop: 0,
   attack: null,
+  down: false,
 })
 
 export type CombatFighter = {
@@ -76,8 +79,8 @@ export const attackPhase = (
 /** 位置・速度・タイマーが止まっているか（ヒットストップ） */
 export const isFrozen = (f: CombatFighter) => f.combat.hitstop > 0
 
-/** 操作できるか。やられ中は false（撃墜中・リスポーン待ちは #24 で足す） */
-export const isControllable = (f: CombatFighter) => f.combat.hitstun === 0
+/** 操作できるか。やられ中、撃墜中・リスポーン待ちは false */
+export const isControllable = (f: CombatFighter) => f.combat.hitstun === 0 && !f.combat.down
 
 /** 攻撃を始められるか。攻撃中は始められない（硬直が終わるまで）。やられ中・ヒットストップ中も不可 */
 export const canAttack = (f: CombatFighter) =>
@@ -88,7 +91,8 @@ export const moveSpeedScale = (f: CombatFighter, c: CombatConfig = DEFAULT_COMBA
   f.combat.attack !== null && f.body.onGround ? c.groundAttackSpeedScale : 1
 
 /** ヒットを受けられるか（やられ中と、回復後の無敵の間は受けない） */
-export const isVulnerable = (f: CombatFighter) => f.combat.hitstun === 0 && f.combat.invuln === 0
+export const isVulnerable = (f: CombatFighter) =>
+  !f.combat.down && f.combat.hitstun === 0 && f.combat.invuln === 0
 
 // --- 当たり判定 ---
 
@@ -118,7 +122,7 @@ export const overlaps = (a: Rect, b: Rect) =>
 // --- 1ステップの処理 ---
 
 /** 攻撃を始める。できないときは、そのまま返す */
-export function tryStartAttack(f: CombatFighter, facing: Facing): CombatFighter {
+export function tryStartAttack<F extends CombatFighter>(f: F, facing: Facing): F {
   if (!canAttack(f)) return f
   return {
     ...f,
@@ -147,7 +151,7 @@ export function resolveCombat(
     const attacker = fighters[i]
     const victimIdx = (1 - i) as 0 | 1
     const victim = fighters[victimIdx]
-    if (isFrozen(attacker) || isFrozen(victim)) continue
+    if (attacker.combat.down || isFrozen(attacker) || isFrozen(victim)) continue
     const a = attacker.combat.attack
     if (!a || a.hasHit) continue
     const box = hitbox(attacker, c)
@@ -219,6 +223,7 @@ export function resolveCombat(
 /** タイマーを1ステップ進める。ヒットストップ中は、ヒットストップだけが減る */
 function tick(f: CombatFighter, c: CombatConfig): CombatFighter {
   const s = f.combat
+  if (s.down) return f // 撃墜中は、battle がタイマー（リスポーン待ち）を管理する
   if (s.hitstop > 0) return { ...f, combat: { ...s, hitstop: s.hitstop - 1 } }
 
   let { hitstun, invuln, attack } = s
