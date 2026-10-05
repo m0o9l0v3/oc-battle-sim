@@ -378,12 +378,24 @@ describe('読み込みの検証（import）', () => {
     }
   })
 
-  it('schemaVersion が数でない／ない → MALFORMED（読み込みのとき）', () => {
-    for (const v of ['1', null, undefined]) {
-      expect(errorsOf(validateConfig(cfg({ schemaVersion: v }), 'import'))).toEqual([
+  it('schemaVersion が数でない／ない → MALFORMED（どの検証でも）。対戦を始められない', () => {
+    for (const mode of ['editing', 'match', 'import'] as const) {
+      for (const v of ['1', null, undefined, true, {}]) {
+        expect(
+          errorsOf(validateConfig(cfg({ schemaVersion: v }), mode)),
+          `${mode} ${String(v)}`,
+        ).toEqual([{ code: 'MALFORMED', field: 'schemaVersion' }])
+      }
+      // 項目そのものがない
+      const { schemaVersion: _omit, ...rest } = createDefaultConfig('p1')
+      void _omit
+      expect(errorsOf(validateConfig(rest, mode)), mode).toEqual([
         { code: 'MALFORMED', field: 'schemaVersion' },
       ])
     }
+    const { schemaVersion: _omit, ...rest } = createDefaultConfig('p1')
+    void _omit
+    expect(canStartMatch(rest)).toBe(false)
   })
 
   it('成功した config の schemaVersion は 1', () => {

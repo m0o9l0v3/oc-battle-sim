@@ -130,12 +130,11 @@ function validate(config: unknown, mode: ValidationMode): ValidationResult {
 
   if (!isRecord(config)) return { ok: false, errors: [{ code: 'MALFORMED', field: '' }] }
 
-  // 形式の版（読み込みのときだけ）
-  if (mode === 'import') {
-    const v = config.schemaVersion
-    if (typeof v !== 'number') add('MALFORMED', 'schemaVersion')
-    else if (v !== SUPPORTED_SCHEMA_VERSION) add('SCHEMA_UNSUPPORTED', 'schemaVersion')
-  }
+  // 形式の版。項目の有無・型は、どの検証でも調べる。読み込める版かどうかの比較は、読み込みのときだけ
+  const v = config.schemaVersion
+  if (typeof v !== 'number') add('MALFORMED', 'schemaVersion')
+  else if (mode === 'import' && v !== SUPPORTED_SCHEMA_VERSION)
+    add('SCHEMA_UNSUPPORTED', 'schemaVersion')
 
   // 名前
   let name = ''
