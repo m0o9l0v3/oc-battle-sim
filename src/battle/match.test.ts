@@ -409,6 +409,73 @@ describe('復帰の記録（recovery.md §5）', () => {
   })
 })
 
+describe('レビュー指摘の回帰', () => {
+  it('リスポーン直後にジャンプしても、空中ジャンプの回数を使わない（接地した状態で始まる）', () => {
+    const ctx = ctxWith()
+    let s = startFight(ctx)
+    s = {
+      ...s,
+      fighters: [
+        { ...s.fighters[0], body: { ...s.fighters[0].body, x: -6.1, y: 5, onGround: false } },
+        s.fighters[1],
+      ],
+    }
+    s = run(ctx, s, 91).s // 撃墜 → リスポーン
+    expect(s.fighters[0].combat.down).toBe(false)
+    expect(s.fighters[0].body.onGround).toBe(true)
+    const r = stepMatch(s, [input({ jumpPressed: true }), input()], ctx)
+    expect(ofType(r.events, 'jump')).toEqual([
+      { step: s.step, type: 'jump', fighter: 0, air: false },
+    ])
+    expect(r.state.fighters[0].body.airJumpsLeft).toBe(2)
+  })
+
+  it('空中で足場の範囲に戻っただけでは、復帰成功にしない。着地して初めて記録する', () => {
+    const ctx = ctxWith()
+    const s0 = startFight(ctx)
+    // 足場の範囲の外（x < 4）に 20 ステップいた状態で、空中のまま範囲の内側に入った
+    const f = s0.fighters[0]
+    const air: MatchState = {
+      ...s0,
+      fighters: [
+        {
+          ...f,
+          outSteps: 20,
+          recoveryAttempted: true,
+          body: { ...f.body, x: 4.5, y: 8, onGround: false },
+        },
+        s0.fighters[1],
+      ],
+    }
+    const r1 = stepMatch(air, [input(), input()], ctx)
+    expect(r1.state.fighters[0].body.onGround).toBe(false)
+    expect(ofType(r1.events, 'recovery_success')).toHaveLength(0)
+    expect(r1.state.fighters[0].outSteps).toBe(20) // 復帰の最中として、保持する
+    // 着地するまで進める
+    const { events } = run(ctx, r1.state, 60)
+    expect(ofType(events, 'recovery_success')).toEqual([
+      expect.objectContaining({ type: 'recovery_success', fighter: 0, outSteps: 20 }),
+    ])
+  })
+
+  it('空中で範囲に戻ったあと、足場を逃して撃墜されたら、復帰失敗だけを数える（成功は出ない）', () => {
+    const ctx = ctxWith()
+    const s0 = startFight(ctx)
+    const f = s0.fighters[0]
+    // 足場の下（床の高さより低い位置）から外へ。範囲の内側（x = 3.9 は外、x = 4.1 は内）を、空中のまま落ちる
+    const air: MatchState = {
+      ...s0,
+      fighters: [
+        { ...f, outSteps: 30, body: { ...f.body, x: 3.9, y: 14, onGround: false, vy: 5 } },
+        s0.fighters[1],
+      ],
+    }
+    const { events } = run(ctx, air, 400, idle, (_, e) => e.some((x) => x.type === 'ko'))
+    expect(ofType(events, 'recovery_success')).toHaveLength(0)
+    expect(ofType(events, 'recovery_failure')).toHaveLength(1)
+  })
+})
+
 describe('決定的', () => {
   it('同じ入力の列から、同じ状態・イベントになる', () => {
     const ctx = ctxWith()

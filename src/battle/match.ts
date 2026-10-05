@@ -324,8 +324,9 @@ export function stepMatch(
       const out = isOutside(cur, f.body.onGround, ctx.extent)
       if (out) {
         f = { ...f, outSteps: f.outSteps + 1 }
-      } else if (f.outSteps > 0) {
-        // 場外から足場に戻った。0.3 秒以上いたものだけを、復帰成功として記録する
+      } else if (f.outSteps > 0 && f.body.onGround) {
+        // 場外から、足場の上に着いた（空中で足場の範囲に戻っただけでは、まだ復帰ではない。
+        // そのあと落ちて撃墜されたら、復帰失敗になる）。0.3 秒以上いたものだけを、復帰成功として記録する
         if (f.outSteps >= MIN_RECOVERY_STEPS) {
           emit({ type: 'recovery_success', fighter: i, outSteps: f.outSteps })
         }
@@ -350,7 +351,8 @@ export function stepMatch(
     fighters[i] = {
       ...fresh,
       // 蓄積ダメージ 0 %、速度 0、空中ジャンプ回復、向きはステージの中央。そのうえで、無敵が続く
-      body: { ...fresh.body, onGround: false, airJumpsLeft: AIR_JUMPS },
+      // スポーン位置は足場の上。接地した状態で始める（すぐにジャンプしても、空中ジャンプの回数を使わない）
+      body: { ...fresh.body, airJumpsLeft: AIR_JUMPS },
       shield: true,
       combat: { ...createCombatState(), invuln: ctx.steps.respawnInvincible },
     }
