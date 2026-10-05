@@ -1,33 +1,20 @@
-import { useState } from 'react'
-import { DEFAULT_STATS } from './fighter/index.ts'
-import type { Stats } from './model/index.ts'
-import { DEMO_STAGE } from './ui/demoStage.ts'
-import { FighterGallery } from './ui/FighterGallery.tsx'
-import { KeyCheck } from './ui/KeyCheck.tsx'
-import { StageCanvas } from './ui/StageCanvas.tsx'
-import { StatScreen } from './ui/StatScreen.tsx'
+import { DevPage } from './ui/DevPage.tsx'
+import { isDevPage } from './ui/devMode.ts'
 
-export default function App() {
-  // 画面の遷移（S01〜S12）は #35。ここは、部品の動作確認用
-  const [stats, setStats] = useState<Stats>({ ...DEFAULT_STATS })
-  const [done, setDone] = useState(false)
+/**
+ * 入口。通常は、体験の入口（S01 の場所）。画面の遷移（S01〜S12）は #35 で作る。
+ * URL に `?dev` を付けると、部品の動作確認用のページを開く（参加者の画面には、出さない）。
+ */
+export default function App({
+  dev = typeof window !== 'undefined' && isDevPage(window.location.search),
+}: {
+  dev?: boolean
+}) {
+  if (dev) return <DevPage />
   return (
     <main>
       <h1>OC Battle Sim</h1>
       <p>Design → Test → Evaluate → Improve</p>
-      <StatScreen
-        stats={stats}
-        onChange={(s) => {
-          setStats(s)
-          setDone(false)
-        }}
-        onNext={() => setDone(true)}
-        onBack={() => {}}
-      />
-      {done && <p role="status">つぎの がめんへ すすむよ（{JSON.stringify(stats)}）</p>}
-      <FighterGallery />
-      <StageCanvas stage={DEMO_STAGE} />
-      <KeyCheck />
     </main>
   )
 }
