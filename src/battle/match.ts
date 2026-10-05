@@ -23,7 +23,9 @@ import {
   DT,
   canJump,
   createBody,
+  DEFAULT_COEFFICIENTS,
   fighterParams,
+  type PhysicsCoefficients,
   gridFromStage,
   stepBody,
   type FighterParams,
@@ -71,12 +73,13 @@ export function createMatchContext(
   stats: [Stats, Stats],
   rules: MatchRules = DEFAULT_MATCH_RULES,
   combat: CombatConfig = DEFAULT_COMBAT_CONFIG,
+  coeffs: PhysicsCoefficients = DEFAULT_COEFFICIENTS,
 ): MatchContext {
   const spawn = (s: { col: number; row: number }) => ({ x: s.col + 0.5, y: s.row + 1 })
   return {
     stage,
     grid: gridFromStage(stage),
-    params: [fighterParams(stats[0]), fighterParams(stats[1])],
+    params: [fighterParams(stats[0], coeffs), fighterParams(stats[1], coeffs)],
     stats: [stats[0], stats[1]],
     rules,
     combat,

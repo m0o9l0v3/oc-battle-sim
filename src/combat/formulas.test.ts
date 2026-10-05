@@ -12,25 +12,25 @@ import {
 
 describe('ダメージ（damage.md §3）', () => {
   it.each([
-    [2, 8.4],
-    [3, 9.6],
-    [4, 10.8],
+    [2, 10.56],
+    [3, 11.04],
+    [4, 11.52],
     [5, 12.0],
-    [6, 13.2],
-    [7, 14.4],
-    [8, 15.6],
+    [6, 12.48],
+    [7, 12.96],
+    [8, 13.44],
   ])('attackPower %i → %f %%', (ap, expected) => {
     expect(damageDealt(ap)).toBeCloseTo(expected, 10)
   })
 
   it.each([
-    [2, 12],
-    [3, 11],
-    [4, 10],
+    [2, 10],
+    [3, 10],
+    [4, 9],
     [5, 9],
-    [6, 8],
-    [7, 7],
-    [8, 7],
+    [6, 9],
+    [7, 8],
+    [8, 8],
   ])('attackPower %i は、%i 回のヒットで 100 %% に届く', (ap, hits) => {
     expect(damageDealt(ap) * hits).toBeGreaterThanOrEqual(100 - 1e-9)
     expect(damageDealt(ap) * (hits - 1)).toBeLessThan(100)
@@ -42,9 +42,9 @@ describe('ダメージ（damage.md §3）', () => {
 
   it('計算の例（§6）', () => {
     expect(damageDealt(5) * 3).toBeCloseTo(36, 10)
-    expect(damageDealt(8) * 2).toBeCloseTo(31.2, 10)
-    expect(damageDealt(2) * 5).toBeCloseTo(42, 10)
-    expect(damageDealt(8) * 7).toBeCloseTo(109.2, 10)
+    expect(damageDealt(8) * 2).toBeCloseTo(26.88, 10)
+    expect(damageDealt(2) * 5).toBeCloseTo(52.8, 10)
+    expect(damageDealt(8) * 7).toBeCloseTo(94.08, 10)
   })
 })
 
@@ -57,42 +57,42 @@ describe('蓄積と表示（damage.md §4）', () => {
 
   it('表示は整数に切り捨てる。内部の小数は丸めない', () => {
     expect(displayDamage(33.6)).toBe(33)
-    expect(displayDamage(31.2)).toBe(31)
-    expect(displayDamage(109.2)).toBe(109)
+    expect(displayDamage(26.88)).toBe(26)
+    expect(displayDamage(94.08)).toBe(94)
     expect(displayDamage(0)).toBe(0)
   })
 
-  it('小数の足し算の誤差で、表示が 1 つ減らない（8.4 × 5 = 42）', () => {
+  it('小数の足し算の誤差で、表示が 1 つ減らない（10.56 × 5 = 52.8）', () => {
     let d = 0
     for (let i = 0; i < 5; i++) d = accumulateDamage(d, damageDealt(2))
-    expect(displayDamage(d)).toBe(42)
+    expect(displayDamage(d)).toBe(52)
   })
 })
 
 describe('吹き飛ばしの速さ（knockback.md §3、§7、§8）', () => {
   it.each([
     // [ダメージ後, defense 2, 5, 8]
-    [12, 12.7, 9.8, 6.9],
-    [36, 17.4, 13.4, 9.4],
-    [60, 22.1, 17.0, 11.9],
-    [100, 29.9, 23.0, 16.1],
-    [150, 39.6, 30.5, 21.3],
+    [12, 11.0, 9.8, 8.6],
+    [36, 15.0, 13.4, 11.8],
+    [60, 19.0, 17.0, 15.0],
+    [100, 25.76, 23.0, 20.24], // 表（knockback.md §7）は 25.8、20.2 と丸める
+    [150, 34.2, 30.5, 26.8],
   ])('ダメージ後 %i %% の速さ（defense 2 / 5 / 8）', (d, s2, s5, s8) => {
     expect(launchSpeed(d, 2)).toBeCloseTo(s2, 1)
     expect(launchSpeed(d, 5)).toBeCloseTo(s5, 1)
     expect(launchSpeed(d, 8)).toBeCloseTo(s8, 1)
   })
 
-  it('defense は、吹き飛ぶ速さだけを変える。高いほど遅い（倍率 1.30〜0.70）', () => {
+  it('defense は、吹き飛ぶ速さだけを変える。高いほど遅い（倍率 1.12〜0.88）', () => {
     const base = launchSpeed(100, 5)
     for (const [def, k] of [
-      [2, 1.3],
-      [3, 1.2],
-      [4, 1.1],
+      [2, 1.12],
+      [3, 1.08],
+      [4, 1.04],
       [5, 1.0],
-      [6, 0.9],
-      [7, 0.8],
-      [8, 0.7],
+      [6, 0.96],
+      [7, 0.92],
+      [8, 0.88],
     ] as const) {
       expect(launchSpeed(100, def)).toBeCloseTo(base * k, 10)
     }
@@ -120,11 +120,11 @@ describe('やられ中の長さ（knockback.md §5、§7）', () => {
   it.each([
     [12, 5, 395, 24],
     [100, 5, 725, 44],
-    [12, 2, 469, 29],
-    [36, 2, 586, 36],
-    [100, 2, 898, 54],
-    [12, 8, 322, 20],
-    [100, 8, 552, 34],
+    [12, 2, 424, 26],
+    [36, 2, 525, 32],
+    [100, 2, 794, 48],
+    [12, 8, 366, 22],
+    [100, 8, 656, 40],
   ])('蓄積 %i %%・defense %i → 約 %i ms、%i ステップ', (d, def, ms, steps) => {
     const speed = launchSpeed(d, def)
     expect(hitstunMs(speed)).toBeCloseTo(ms, -0.5)
