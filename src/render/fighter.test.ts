@@ -584,6 +584,24 @@ describe('攻撃の軌跡', () => {
   })
 })
 
+describe('攻撃中の向き', () => {
+  it('攻撃中に、逆を押して向きが変わっても、体は攻撃の向きのまま（判定・軌跡と同じ）', () => {
+    const mctx = createMatchContext(DEMO_STAGE, [DEFAULT_STATS, DEFAULT_STATS])
+    const none = { left: false, right: false, jumpPressed: false, attackPressed: false }
+    let s = createMatchState(mctx)
+    while (s.phase !== 'fight') s = stepMatch(s, [none, none], mctx).state
+    s = stepMatch(s, [{ ...none, attackPressed: true }, none], mctx).state
+    const locked = s.fighters[0].combat.attack!.facing
+    s = stepMatch(s, [{ ...none, left: locked > 0 }, none], mctx).state
+    expect(s.fighters[0].facing).toBe(-locked)
+    const r = createFighterRenderer({ looks: [LOOKS[0]!, LOOKS[1]!] })
+    const ctx = new FakeCtx()
+    r.draw({ ctx: asCtx(ctx), camera, width: 100, height: 100 }, s, s, 1)
+    // 向きの反転は、行列の x 方向の符号に出る
+    expect(Math.sign(ctx.draws[0]!.matrix[0])).toBe(locked)
+  })
+})
+
 function deepFreeze<T>(o: T): T {
   if (o && typeof o === 'object') {
     for (const v of Object.values(o)) deepFreeze(v)

@@ -346,7 +346,8 @@ export function createFighterRenderer(opts: FighterRendererOptions): FighterRend
           interpolatePose(anim.prevPose, anim.pose, a),
           x,
           y,
-          curr.fighters[i].facing,
+          // 攻撃中は、攻撃を始めたときの向きを保つ（判定・軌跡と同じ。途中で逆を押しても、拳は判定から離れない）
+          curr.fighters[i].combat.attack?.facing ?? curr.fighters[i].facing,
         )
         const box = trail ? hitbox(curr.fighters[i], combat) : null
         if (box) drawAttackTrail(dc, box, curr.fighters[i].combat.attack?.facing ?? 1)
