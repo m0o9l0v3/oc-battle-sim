@@ -2,6 +2,8 @@ import { useState, type ReactNode } from 'react'
 import { DEFAULT_STATS } from '../fighter/index.ts'
 import type { Stats } from '../model/index.ts'
 import { DEMO_STAGE } from './demoStage.ts'
+import { AnimationSheet } from './AnimationSheet.tsx'
+import { FighterArena } from './FighterArena.tsx'
 import { FighterGallery } from './FighterGallery.tsx'
 import { KeyCheck } from './KeyCheck.tsx'
 import { StageCanvas } from './StageCanvas.tsx'
@@ -35,6 +37,12 @@ export type DevSection = { id: string; title: string; render: () => ReactNode }
 export const DEV_SECTIONS: DevSection[] = [
   { id: 'stat', title: '能力値の設定（S03。#27）', render: () => <StatDemo /> },
   { id: 'fighter', title: 'ファイターの素材（#28）', render: () => <FighterGallery /> },
+  { id: 'sheet', title: '7状態のポーズ（#29）', render: () => <AnimationSheet /> },
+  {
+    id: 'arena',
+    title: 'ファイターの描画とアニメーション（#29。?perf も付けると FPS を表示）',
+    render: () => <FighterArena />,
+  },
   {
     id: 'stage',
     title: 'ステージの描画（#20。?perf も付けると FPS を表示）',
