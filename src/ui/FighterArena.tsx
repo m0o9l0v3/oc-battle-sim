@@ -18,6 +18,7 @@ import {
   type DrawContext,
   type Renderer,
 } from '../render/index.ts'
+import type { StageData } from '../model/index.ts'
 import { DEMO_STAGE } from './demoStage.ts'
 
 const perfEnabled = () => new URLSearchParams(window.location.search).has('perf')
@@ -30,19 +31,19 @@ const RULES = { ...DEFAULT_MATCH_RULES, readySec: 1, endSec: 2 }
  * 実際の試合の更新（stepMatch）で動かすので、7つの状態が、ゲームの状態に応じて切り替わる様子を確認できる。
  * 画面の遷移（S05、S07）は #34、#35 で作る
  */
-export function FighterArena() {
+export function FighterArena({ stage: stageData = DEMO_STAGE }: { stage?: StageData }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [perfText, setPerfText] = useState('')
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = createMatchContext(DEMO_STAGE, [STATS, STATS], RULES)
+    const ctx = createMatchContext(stageData, [STATS, STATS], RULES)
     const looks = [
       lookFromAppearance(createDefaultConfig('p1').appearance),
       lookFromAppearance(createDefaultConfig('p2').appearance),
     ] as const
-    const stage = createStageRenderer(DEMO_STAGE)
+    const stage = createStageRenderer(stageData)
     const fighters = createFighterRenderer({ looks, combat: ctx.combat })
     const renderer: Renderer<MatchState> = {
       draw(dc: DrawContext, prev, curr, alpha) {
@@ -92,7 +93,7 @@ export function FighterArena() {
       keys.dispose()
       if (timer !== undefined) window.clearInterval(timer)
     }
-  }, [])
+  }, [stageData])
 
   return (
     <>
