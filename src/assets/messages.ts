@@ -60,4 +60,26 @@ export const messages = {
     back: 'もどる',
     previewLabel: (name: string) => `${name}の みため（うごいているよ）`,
   },
+  /** ステージの検証の、参加者向けメッセージ（validation.md §6） */
+  stageRules: {
+    BLOCKS_TOO_FEW: (n: number) => `ブロックが すくないよ。あと ${n}こ おこう`,
+    BLOCKS_TOO_MANY: (n: number) => `ブロックが おおすぎるよ。${n}こ へらそう`,
+    MAIN_PLATFORM_NARROW: (min: number) =>
+      `ひろい ゆかが ないよ。${min}マス いじょうの ゆかを つくろう`,
+    PLATFORM_TOO_NARROW: (min: number) => `せまい あしばが あるよ。${min}マス いじょうに しよう`,
+    STAGE_TOO_HIGH: (rows: number) =>
+      `たかすぎる ブロックが あるよ。うえの ${rows}れつは あけておこう`,
+    SPAWN_MISSING: 'スタートの いちが きまっていないよ',
+    SPAWN_OUT_OF_RANGE: 'スタートの いちが はみだしているよ',
+    SPAWN_BLOCKED: 'スタートの うえに ブロックが あるよ。うえを あけよう',
+    SPAWN_NO_GROUND: 'スタートの したに ゆかが ないよ',
+    SPAWN_TOO_CLOSE: 'ふたりの スタートが ちかすぎるよ。もっと はなそう',
+    UNREACHABLE: 'いけない あしばが あるよ。ジャンプで とどく ように しよう',
+    NAME_TOO_LONG: 'なまえが ながすぎるよ',
+    MALFORMED: 'ステージを よみこめなかったよ。もういちど よみとってね',
+    SCHEMA_UNSUPPORTED:
+      'このステージは、いまの アプリでは よみこめないよ。あたらしい ばんの アプリで ひらいてね',
+    /** 画面に出しきれない分 */
+    others: (n: number) => `ほかにも ${n}こ あるよ`,
+  },
 } as const
