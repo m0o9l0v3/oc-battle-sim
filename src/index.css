@@ -277,3 +277,97 @@ main {
     flex-direction: column;
   }
 }
+
+/* ステージの選択（S04 のプリセット。stage-editor.md §4）。ビジュアルテーマ（#36）ができたら、色・大きさをそちらへ寄せる */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.stage-select {
+  max-width: 960px;
+}
+.stage-select__heading {
+  margin: 0 0 1rem;
+  font-size: 1.5rem;
+}
+.stage-select__list {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.stage-select__legend {
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 0;
+  margin-bottom: 0.5rem;
+}
+.stage-select__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.stage-card {
+  position: relative;
+  display: grid;
+  gap: 0.25rem;
+  width: 190px;
+  padding: 0.5rem;
+  border: 2px solid #8fa3c8;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+.stage-card:hover {
+  border-color: #4a63a0;
+}
+.stage-card[data-checked='true'] {
+  border-color: #1d4ed8;
+  background: #e8efff;
+  box-shadow: 0 0 0 2px #1d4ed8;
+}
+.stage-card:focus-within {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
+}
+.stage-card input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.stage-thumb {
+  display: block;
+  border-radius: 6px;
+  max-width: 100%;
+  height: auto;
+}
+.stage-card__name {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.stage-card__desc {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+.stage-select__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.stage-select__next {
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+}
+.stage-select__result {
+  margin: 0;
+  min-height: 1.2em;
+  font-weight: 700;
+}

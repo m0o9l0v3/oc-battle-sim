@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { DEFAULT_STATS, createDefaultConfig } from '../fighter/index.ts'
-import type { CharacterConfig, Stats } from '../model/index.ts'
+import type { CharacterConfig, StageData, Stats } from '../model/index.ts'
+import { DEFAULT_PRESET_ID } from '../stage/index.ts'
 import { DEMO_STAGE } from './demoStage.ts'
+import { StageSelectScreen } from './StageSelectScreen.tsx'
 import { AppearanceScreen } from './AppearanceScreen.tsx'
 import { AnimationSheet } from './AnimationSheet.tsx'
 import { FighterArena } from './FighterArena.tsx'
@@ -40,6 +42,17 @@ function AppearanceDemo() {
   )
 }
 
+function StageSelectDemo() {
+  const [id, setId] = useState(DEFAULT_PRESET_ID)
+  const [done, setDone] = useState<StageData | null>(null)
+  return (
+    <>
+      <StageSelectScreen selectedId={id} onSelect={setId} onNext={setDone} />
+      {done && <p role="status">つぎの がめんへ すすむよ（{done.name}）</p>}
+    </>
+  )
+}
+
 export type DevSection = { id: string; title: string; render: () => ReactNode }
 
 /**
@@ -47,6 +60,7 @@ export type DevSection = { id: string; title: string; render: () => ReactNode }
  * 画面の遷移（S01〜S12）は #35 で作る。ここは、部品の動作確認だけに使う
  */
 export const DEV_SECTIONS: DevSection[] = [
+  { id: 'stage-select', title: 'ステージを えらぶ（S04。#32）', render: () => <StageSelectDemo /> },
   { id: 'appearance', title: '見た目を選ぶ（S02。#30）', render: () => <AppearanceDemo /> },
   { id: 'stat', title: '能力値の設定（S03。#27）', render: () => <StatDemo /> },
   { id: 'fighter', title: 'ファイターの素材（#28）', render: () => <FighterGallery /> },
