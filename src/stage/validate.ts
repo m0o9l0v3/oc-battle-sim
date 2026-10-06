@@ -9,7 +9,12 @@ import {
   unreachableCells,
   type Cell,
 } from './analysis.ts'
-import { DEFAULT_STAGE_RULES, SUPPORTED_STAGE_SCHEMA_VERSION, type StageRules } from './rules.ts'
+import {
+  DEFAULT_STAGE_NAME,
+  DEFAULT_STAGE_RULES,
+  SUPPORTED_STAGE_SCHEMA_VERSION,
+  type StageRules,
+} from './rules.ts'
 
 export type StageViolationCode =
   | 'MALFORMED'
@@ -122,7 +127,8 @@ function validate(
     for (let r = s.row; r >= s.row - rules.spawnHeadroom; r--) {
       if (isBlock(cells, s.col, r)) blocked.push({ col: s.col, row: r })
     }
-    if (!isBlock(cells, s.col, s.row + 1)) noGround.push(s)
+    // スポーン自身がブロックのときは、SPAWN_BLOCKED だけを返す（先に、上を空ける）
+    if (!isBlock(cells, s.col, s.row) && !isBlock(cells, s.col, s.row + 1)) noGround.push(s)
   }
   if (blocked.length > 0) v.push({ code: 'SPAWN_BLOCKED', cells: blocked })
   if (noGround.length > 0) v.push({ code: 'SPAWN_NO_GROUND', cells: noGround })
@@ -171,7 +177,8 @@ function validate(
     ok: true,
     stage: {
       schemaVersion: 1,
-      name,
+      // 未入力のときは、デフォルト名（stage-format.md §5）
+      name: name === '' ? DEFAULT_STAGE_NAME : name,
       cols: STAGE_COLS,
       rows: STAGE_ROWS,
       cells: cells.map((r) => [...r]),

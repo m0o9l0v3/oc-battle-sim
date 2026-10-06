@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { STAGE_COLS, STAGE_ROWS, type StageData } from '../model/index.ts'
 import { canJump, findPlatforms, isStandable, standableCells } from './analysis.ts'
 import { stageFromRows } from './rows.ts'
+import { DEFAULT_STAGE_NAME } from './rules.ts'
 import { validateStage, type StageViolation, type StageViolationCode } from './validate.ts'
 
 // 標準のステージ（stage-format.md §8）
@@ -221,6 +222,18 @@ describe('スポーン', () => {
     expect(codes(s)).not.toContain('SPAWN_OUT_OF_RANGE')
   })
 
+  it('スポーン自身がブロックで、真下が空のときは、SPAWN_BLOCKED だけ（SPAWN_NO_GROUND を重ねない）', () => {
+    const s = edit((cells) => {
+      cells[9]![4] = 1
+      cells[10]![4] = 0
+      cells[11]![4] = 0
+      cells[12]![4] = 0
+    })
+    const c = codes(s)
+    expect(c).toContain('SPAWN_BLOCKED')
+    expect(c).not.toContain('SPAWN_NO_GROUND')
+  })
+
   it('SPAWN_NO_GROUND: 真下にブロックがない、または最下行', () => {
     const s = edit((cells) => {
       cells[10]![4] = 0
@@ -350,6 +363,13 @@ describe('名前', () => {
     expect(codes({ ...std(), name: '😀'.repeat(8) })).toContain('NAME_TOO_LONG') // 32 バイト
     expect(codes({ ...std(), name: '😀'.repeat(7) })).toEqual([])
     expect(codes({ ...std(), name: '' })).toEqual([])
+  })
+
+  it('未入力（空・空白だけ）のときは、デフォルト名にする', () => {
+    for (const name of ['', '   ']) {
+      const r = validateStage({ ...std(), name }, 'match')
+      expect(r.ok && r.stage.name).toBe(DEFAULT_STAGE_NAME)
+    }
   })
 })
 
