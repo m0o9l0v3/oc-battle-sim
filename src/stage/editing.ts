@@ -33,8 +33,8 @@ export type EditorNotice = { code: EditorNoticeCode; seq: number }
 export type Stroke = {
   mode: 'place' | 'erase' | 'spawn1' | 'spawn2'
   visited: ReadonlySet<number>
-  /** 直前に通ったマス（速いマウスの動きで、マスが飛ばないよう、間を補う） */
-  last: CellPos
+  /** 直前に通ったマス（速いマウスの動きで、マスが飛ばないよう、間を補う）。グリッドの外へ出たら null（戻ってきても、間を補わない） */
+  last: CellPos | null
   /** この操作で、履歴に残したか（最初に変わったときに、1 件だけ残す） */
   recorded: boolean
 }
@@ -186,9 +186,11 @@ function lineBetween(a: CellPos, b: CellPos): CellPos[] {
  * 前のマスから離れていれば、間のマスも通ったものとして処理する
  */
 export function strokeMove(s: EditorState, c: CellPos): EditorState {
-  if (!s.stroke || !inGrid(c)) return s
+  if (!s.stroke) return s
+  // グリッドの外へ出たら、補う線を切る（外を回って、遠くのマスに戻っても、通っていないマスは変えない）
+  if (!inGrid(c)) return s.stroke.last === null ? s : { ...s, stroke: { ...s.stroke, last: null } }
   let st = s
-  for (const p of lineBetween(s.stroke.last, c)) {
+  for (const p of s.stroke.last ? lineBetween(s.stroke.last, c) : [c]) {
     const stroke = st.stroke
     if (!stroke) break
     const moved: Stroke = { ...stroke, last: p }
@@ -253,10 +255,16 @@ export function resetToPreset(s: EditorState): EditorState {
   return s.selectedPresetId ? selectPreset(s, s.selectedPresetId) : s
 }
 
-/** ステージの名前。上限（10 文字・30 バイト）を超える入力は、受け付けない。履歴には残さない */
+/** ステージの名前。上限（10 文字・30 バイト）を超える入力は、受け付けない。履歴には残さず、もどしても変わらない */
 export function setStageName(s: EditorState, raw: string): EditorState {
   const { value } = clampName(raw)
-  return value === s.stage.name ? s : { ...s, stage: { ...s.stage, name: value } }
+  if (value === s.stage.name) return s
+  // 名前は、「もどす」の対象外。もどしても、あとから入力した名前が消えないよう、履歴の中の名前も、そろえる
+  return {
+    ...s,
+    stage: { ...s.stage, name: value },
+    history: s.history.map((h) => ({ ...h, stage: { ...h.stage, name: value } })),
+  }
 }
 
 /** 編集中の検証（'editing'） */

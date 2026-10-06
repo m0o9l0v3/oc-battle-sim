@@ -127,6 +127,17 @@ describe('ブロックの配置・削除', () => {
     expect(d.history).toHaveLength(1)
   })
 
+  it('ドラッグがグリッドの外へ出たら、線を切る。遠くのマスに戻っても、間のマスは変えない', () => {
+    let s = strokeStart(createEditor(), { col: 2, row: 5 })
+    s = strokeMove(s, { col: 3, row: 5 })
+    s = strokeMove(s, { col: -1, row: -1 }) // 外
+    s = strokeMove(s, { col: 12, row: 5 }) // 外を回って、遠くに戻った
+    s = strokeEnd(s)
+    expect(has(s, 12, 5)).toBe(true) // 戻ったマスは、通ったので、処理する
+    for (const c of [4, 5, 6, 7, 8, 9, 10, 11]) expect(has(s, c, 5), `col ${c}`).toBe(false)
+    expect(s.history).toHaveLength(1)
+  })
+
   it('同じマスは、1 回のドラッグで 1 回だけ（置いたそばから消えない往復を防ぐ）', () => {
     const s = drag(createEditor(), [
       [2, 5],
@@ -324,6 +335,18 @@ describe('名前', () => {
     expect(setStageName(createEditor(), '😀'.repeat(10)).stage.name).toBe('😀'.repeat(7))
     // 名前だけの変更は、「プリセットから変更した」にならない
     expect(s.dirty).toBe(false)
+  })
+
+  it('もどしても、あとから入力した名前は消えない（プリセットの切り替えを戻したときも）', () => {
+    let s = click(createEditor(), 2, 5)
+    s = setStageName(s, 'ぼくの')
+    expect(undo(s).stage.name).toBe('ぼくの')
+    expect(has(undo(s), 2, 5)).toBe(false)
+    let t = selectPreset(createEditor(), 'wide')
+    t = setStageName(t, 'あたらしい')
+    const back = undo(t)
+    expect(back.selectedPresetId).toBe('standard')
+    expect(back.stage.name).toBe('あたらしい')
   })
 
   it('未入力のまま確定すると、デフォルト名になる', () => {

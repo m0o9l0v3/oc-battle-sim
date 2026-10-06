@@ -130,7 +130,8 @@ export function StageEditorScreen({ editor, onChange, onNext, onBack }: StageEdi
   const onMove = (e: ReactPointerEvent<SVGSVGElement>) => {
     const c = cellAt(e)
     setHover(c)
-    if (c && e.buttons & 1) onChange((s) => strokeMove(s, c))
+    // グリッドの外では、ドラッグの線を切る（外を回って戻っても、間のマスは変えない）
+    if (e.buttons & 1) onChange((s) => strokeMove(s, c ?? { col: -1, row: -1 }))
   }
   const onUp = () => onChange((s) => strokeEnd(s))
 
