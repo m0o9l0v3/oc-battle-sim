@@ -18,7 +18,7 @@ export const DEFAULT_STAGE_COLORS: StageColors = {
   stage: '#262f45',
   block: '#8fa3c8',
   grid: 'rgba(255,255,255,0.06)',
-  spawn: ['#ff7a59', '#4fc3f7'],
+  spawn: ['#4fc3f7', '#ff7a59'], // 1P は青系、2P は橙系（ui-design.md §4）
 }
 
 export function drawStage(

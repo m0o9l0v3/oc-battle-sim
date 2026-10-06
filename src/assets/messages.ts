@@ -82,4 +82,14 @@ export const messages = {
     /** 画面に出しきれない分 */
     others: (n: number) => `ほかにも ${n}こ あるよ`,
   },
+  stageSelect: {
+    title: 'ステージを えらぼう',
+    presets: 'ステージの いちらん',
+    usable: 'つかえるよ！',
+    next: 'つぎへ',
+    back: 'もどる',
+    spawn1: '1P',
+    spawn2: '2P',
+    thumbLabel: (name: string) => `${name}の みほん`,
+  },
 } as const
