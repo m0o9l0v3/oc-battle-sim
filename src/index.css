@@ -371,3 +371,19 @@ main {
   min-height: 1.2em;
   font-weight: 700;
 }
+
+.stage-card__check {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.5rem;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: #1d4ed8;
+  color: #fff;
+  font-weight: 700;
+  border: 2px solid #fff;
+  forced-color-adjust: none;
+}

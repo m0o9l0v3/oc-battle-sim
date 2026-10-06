@@ -49,6 +49,12 @@ export function StageSelectScreen({
                   checked={checked}
                   onChange={() => onSelect(p.id)}
                 />
+                {/* 色だけに頼らない、選択の印（ui-design.md §6。強制色のモードでも見える） */}
+                {checked && (
+                  <span className="stage-card__check" aria-hidden="true">
+                    ✓
+                  </span>
+                )}
                 <StageThumbnail stage={p.stage} />
                 <span className="stage-card__name">{p.name}</span>
                 <span className="stage-card__desc">{p.description}</span>

@@ -1,6 +1,7 @@
 import type { StageData } from '../model/index.ts'
 
-const SPAWN_COLORS = ['#ff7a59', '#4fc3f7'] as const
+// 1P は青系、2P は橙系（ui-design.md §4）
+const SPAWN_COLORS = ['#4fc3f7', '#ff7a59'] as const
 
 /** ステージの見本の絵（SVG。24 × 14 マス）。ブロックと、1P・2P のスタート位置 */
 export function StageThumbnail({ stage, width = 168 }: { stage: StageData; width?: number }) {
