@@ -89,6 +89,24 @@ export function createEditor(presetId: string = DEFAULT_PRESET_ID): EditorState 
   }
 }
 
+/** 確定したステージから、編集を始める（S05 から S04 へ戻ったとき、更新（再開）のとき）。もどすの履歴は、空 */
+export function editorFromStage(stage: StageData, presetId: string | null): EditorState {
+  const id = findPreset(presetId)?.id ?? null
+  return {
+    stage: {
+      ...stage,
+      cells: stage.cells.map((r) => [...r]),
+      spawns: { p1: { ...stage.spawns.p1 }, p2: { ...stage.spawns.p2 } },
+    },
+    selectedPresetId: id,
+    tool: 'block',
+    history: [],
+    dirty: differsFromPreset(stage, id),
+    stroke: null,
+    notice: null,
+  }
+}
+
 const snapshotOf = (s: EditorState): EditorSnapshot => ({
   stage: s.stage,
   selectedPresetId: s.selectedPresetId,

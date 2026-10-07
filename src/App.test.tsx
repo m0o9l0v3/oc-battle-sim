@@ -5,9 +5,10 @@ import { DEV_SECTIONS } from './ui/DevPage'
 import { isDevPage } from './ui/devMode'
 
 describe('入口', () => {
-  it('通常は、タイトルだけ。開発用の部品は出さない', () => {
+  it('通常は、体験の入口（S01 スタート）。開発用の部品は出さない', () => {
     const html = renderToString(<App dev={false} />)
-    expect(html).toContain('OC Battle Sim')
+    expect(html).toContain('ファイターラボ')
+    expect(html).toContain('はじめる')
     for (const s of DEV_SECTIONS) expect(html).not.toContain(s.title)
     expect(html).not.toContain('開発用')
   })
