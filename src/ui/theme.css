@@ -1,0 +1,87 @@
+/* ビジュアルテーマ「ファイターラボ」（docs/06-ui/ui-design.md §4）。
+   色・大きさは、役割ごとの変数。ここ以外に、色を直接書かない（assets/theme.ts と同じ値。theme.test.ts が確かめる）。
+   明るい背景、濃い文字。OS のフォントだけを使う（外部から読み込まない） */
+:root {
+  color-scheme: light;
+
+  --c-bg: #f6f8fc;
+  --c-surface: #ffffff;
+  --c-text: #1b2338;
+  --c-text-sub: #475069;
+  --c-border: #5f739c;
+  --c-main: #1d4ed8;
+  --c-on-main: #ffffff;
+  --c-main-hover: #1e40af;
+  --c-sub: #e3e9f6;
+  --c-on-sub: #1b2338;
+  --c-selected-bg: #e8efff;
+  --c-focus: #b45309;
+  --c-success: #166534;
+  --c-success-bg: #e6f4ea;
+  --c-danger: #b91c1c;
+  --c-danger-bg: #fdecec;
+  --c-warn: #8a3b0a;
+  --c-warn-bg: #fff4e0;
+  --c-info: #1e3a8a;
+  --c-info-bg: #e8efff;
+  --c-p1: #0a4f9e;
+  --c-on-p1: #ffffff;
+  --c-p2: #ffb347;
+  --c-on-p2: #1b2338;
+  --c-battle-bg: #0f1420;
+  --c-battle-panel: #262f45;
+  --c-battle-text: #ffffff;
+
+  --font:
+    'Yu Gothic UI', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, 'Noto Sans CJK JP',
+    system-ui, sans-serif;
+  /* 文字の大きさ（1rem = 16px）。補足 20、本文・ボタン 24、見出し 32、数字 48 */
+  --fs-note: 1.25rem;
+  --fs-body: 1.5rem;
+  --fs-heading: 2rem;
+  --fs-title: 3rem;
+  --fs-number: 3rem;
+
+  --min-target: 56px;
+  --radius: 10px;
+  --gap: 0.75rem;
+  --border: 2px;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+}
+
+main {
+  padding: 1rem 1.5rem;
+}
+
+h1 {
+  font-size: var(--fs-title);
+}
+h2 {
+  font-size: var(--fs-heading);
+}
+h3,
+h4 {
+  font-size: var(--fs-body);
+}
+
+/* キーボードの操作でも、どこにいるか分かる */
+:focus-visible {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--c-main);
+}

@@ -3,6 +3,7 @@ import { messages, summarizeViolations } from '../assets/index.ts'
 import type { StageData } from '../model/index.ts'
 import { findPreset, presetStage, STAGE_PRESETS, validateStage } from '../stage/index.ts'
 import { StageThumbnail } from './StageThumbnail.tsx'
+import { Button, ChoiceCard } from './components/index.ts'
 
 const m = messages.stageSelect
 
@@ -42,24 +43,18 @@ export function StageSelectScreen({
           {STAGE_PRESETS.map((p) => {
             const checked = p.id === current.id
             return (
-              <label key={p.id} className="stage-card" data-checked={checked}>
-                <input
-                  type="radio"
-                  name={`${id}-preset`}
-                  checked={checked}
-                  onChange={() => onSelect(p.id)}
-                />
-                {/* 色だけに頼らない、選択の印（ui-design.md §6。強制色のモードでも見える） */}
-                {checked && (
-                  <span className="stage-card__check" aria-hidden="true">
-                    ✓
-                  </span>
-                )}
+              <ChoiceCard
+                key={p.id}
+                name={`${id}-preset`}
+                checked={checked}
+                onChange={() => onSelect(p.id)}
+                className="stage-card"
+              >
                 <StageThumbnail stage={p.stage} />
                 <span className="stage-card__name">{p.name}</span>
                 <span className="stage-card__desc">{p.description}</span>
                 <span className="visually-hidden">{m.thumbLabel(p.name)}</span>
-              </label>
+              </ChoiceCard>
             )
           })}
         </div>
@@ -67,9 +62,9 @@ export function StageSelectScreen({
 
       <footer className="stage-select__footer">
         {onBack ? (
-          <button type="button" className="button button--sub" onClick={onBack}>
+          <Button variant="sub" onClick={onBack}>
             {m.back}
-          </button>
+          </Button>
         ) : (
           <span />
         )}
@@ -78,14 +73,13 @@ export function StageSelectScreen({
           <p className="stage-select__result" role="status">
             {result.ok ? `✓ ${m.usable}` : (summary?.shown.map((s) => s.message).join(' / ') ?? '')}
           </p>
-          <button
-            type="button"
-            className="button button--main"
+          <Button
+            variant="main"
             disabled={!result.ok}
             onClick={() => result.ok && onNext(result.stage)}
           >
             {m.next}
-          </button>
+          </Button>
         </div>
       </footer>
     </div>

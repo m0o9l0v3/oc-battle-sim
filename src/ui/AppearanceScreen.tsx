@@ -20,6 +20,7 @@ import {
 } from '../fighter/index.ts'
 import type { Appearance, CharacterConfig, PlayerSlot } from '../model/index.ts'
 import { FighterPreview } from './FighterPreview.tsx'
+import { Button, ChoiceCard } from './components/index.ts'
 
 const m = messages.appearance
 
@@ -99,7 +100,7 @@ export function AppearanceScreen({
       <h2 className="appearance-screen__heading">{m.title}</h2>
       <div className="appearance-screen__body">
         <div className="appearance-screen__preview">
-          <FighterPreview look={look} label={m.previewLabel(shownName)} />
+          <FighterPreview look={look} label={m.previewLabel(shownName)} height={300} />
           <p className="appearance-screen__preview-name">{shownName}</p>
         </div>
 
@@ -111,13 +112,12 @@ export function AppearanceScreen({
                 {groups[key].map((o) => {
                   const checked = a[key] === o.id
                   return (
-                    <label key={o.id ?? 'none'} className="choice" data-checked={checked}>
-                      <input
-                        type="radio"
-                        name={`${id}-${key}`}
-                        checked={checked}
-                        onChange={() => setAppearance({ ...a, [key]: o.id })}
-                      />
+                    <ChoiceCard
+                      key={o.id ?? 'none'}
+                      name={`${id}-${key}`}
+                      checked={checked}
+                      onChange={() => setAppearance({ ...a, [key]: o.id })}
+                    >
                       {key === 'color' ? (
                         <span
                           className="choice__swatch"
@@ -137,7 +137,7 @@ export function AppearanceScreen({
                         />
                       )}
                       <span className="choice__label">{o.label}</span>
-                    </label>
+                    </ChoiceCard>
                   )
                 })}
               </div>
@@ -172,13 +172,9 @@ export function AppearanceScreen({
             <span id={`${id}-name-count`} className="name-field__count" aria-live="polite">
               {m.nameMax}・{m.nameRemaining(remaining)}
             </span>
-            <button
-              type="button"
-              className="button button--sub"
-              onClick={() => setAppearance(randomAppearance(random))}
-            >
+            <Button variant="sub" onClick={() => setAppearance(randomAppearance(random))}>
               {m.random}
-            </button>
+            </Button>
             <p className="name-field__bytes" role="status">
               {stoppedEarlyByBytes(config.name, limitedBy) ? m.nameBytesNote : ''}
             </p>
@@ -191,19 +187,18 @@ export function AppearanceScreen({
 
       <footer className="appearance-screen__footer">
         {onBack ? (
-          <button type="button" className="button button--sub" onClick={onBack}>
+          <Button variant="sub" onClick={onBack}>
             {m.back}
-          </button>
+          </Button>
         ) : (
           <span />
         )}
-        <button
-          type="button"
-          className="button button--main"
+        <Button
+          variant="main"
           onClick={() => onNext({ ...config, name: resolveName(config.name, player) })}
         >
           {m.next}
-        </button>
+        </Button>
       </footer>
     </div>
   )

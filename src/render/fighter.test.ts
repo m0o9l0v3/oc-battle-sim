@@ -1,5 +1,11 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { BODIES, composeFighterBody, FIXED_COLORS, type FighterLook } from '../assets/index.ts'
+import {
+  BODIES,
+  composeFighterBody,
+  FIXED_COLORS,
+  PLAYER_COLORS,
+  type FighterLook,
+} from '../assets/index.ts'
 import {
   createMatchContext,
   createMatchState,
@@ -603,7 +609,8 @@ describe('1P・2P の目印', () => {
     const ctx = new FakeCtx()
     r.draw({ ctx: asCtx(ctx), camera: cam, width: 1920, height: 1080 }, s, s, 1)
     expect(ctx.texts.map((t) => t.text)).toEqual(['1P', '2P'])
-    expect(ctx.texts.every((t) => t.fill === '#ffffff')).toBe(true)
+    // 文字の色は、札の色との対比が取れる色（1P は白、2P は濃い色）
+    expect(ctx.texts.map((t) => t.fill)).toEqual([PLAYER_COLORS.p1.text, PLAYER_COLORS.p2.text])
   })
 
   it('tags: false で、描かない', () => {

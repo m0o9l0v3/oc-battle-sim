@@ -11,37 +11,10 @@ import { keysLabel } from './keyLabels.ts'
 import { MatchCanvas, type MatchHud } from './MatchCanvas.tsx'
 import { StatEditor } from './StatEditor.tsx'
 import { statPercent } from './statView.ts'
+import { Button, HudPanel, HudPlayer } from './components/index.ts'
 
 const m = messages.flow
 const sm = messages.stat
-
-/** 段階の表示（ui-design.md §4）。5 つの段階の、いまの段階を強調する */
-export function StepBar({ screen }: { screen: Session['data']['screen'] }) {
-  const index = {
-    S02: 0,
-    S03: 0,
-    S04: 1,
-    S05: 2,
-    S06: 3,
-    S07: 3,
-    S08: 4,
-    S09: 4,
-    S10: 3,
-    S11: 4,
-    S12: 4,
-  }[screen as Exclude<typeof screen, 'S01'>]
-  if (index === undefined) return null
-  return (
-    <ol className="step-bar" aria-label="すすみぐあい">
-      {m.steps.map((label, i) => (
-        <li key={label} aria-current={i === index ? 'step' : undefined} data-current={i === index}>
-          {i === index ? '▶ ' : ''}
-          {label}
-        </li>
-      ))}
-    </ol>
-  )
-}
 
 export function StartScreen({ onStart }: { onStart: () => void }) {
   return (
@@ -53,9 +26,9 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
           <li key={t}>{t}</li>
         ))}
       </ol>
-      <button type="button" className="button button--main" onClick={onStart}>
+      <Button variant="main" onClick={onStart}>
         {m.start.begin}
-      </button>
+      </Button>
     </div>
   )
 }
@@ -132,27 +105,22 @@ export function PrepScreen({
             onChange={(stats) => onChangeP2({ ...p2, stats })}
             heading={m.prep.foe}
           />
-          <button
-            type="button"
-            className="button button--sub"
-            disabled={!ready}
-            onClick={() => setOpen(false)}
-          >
+          <Button variant="sub" disabled={!ready} onClick={() => setOpen(false)}>
             {m.prep.closeFoe}
-          </button>
+          </Button>
         </div>
       ) : (
-        <button type="button" className="button button--sub" onClick={() => setOpen(true)}>
+        <Button variant="sub" onClick={() => setOpen(true)}>
           {m.prep.changeFoe}
-        </button>
+        </Button>
       )}
       <footer className="flow-footer">
-        <button type="button" className="button button--sub" onClick={onBack}>
+        <Button variant="sub" onClick={onBack}>
           {messages.stat.back}
-        </button>
-        <button type="button" className="button button--main" disabled={!ready} onClick={onStart}>
+        </Button>
+        <Button variant="main" disabled={!ready} onClick={onStart}>
           {m.prep.start}
-        </button>
+        </Button>
       </footer>
     </div>
   )
@@ -174,19 +142,19 @@ export function MatchScreen({
   return (
     <div className="match">
       <h2>{m.match.title(matchNo)}</h2>
-      <div className="match__hud" role="status">
-        {hud?.phase === 'ready' ? (
-          <b>{m.match.ready}</b>
-        ) : (
-          hud && <b>{m.match.time(hud.timeLeftSec)}</b>
-        )}
+      <HudPanel
+        headline={hud?.phase === 'ready' ? m.match.ready : hud ? m.match.time(hud.timeLeftSec) : ''}
+      >
         {([p1, p2] as const).map((c, i) => (
-          <span key={i} className="match__player">
-            {i === 0 ? '1P' : '2P'} {resolveName(c.name, i === 0 ? 'p1' : 'p2')}:{' '}
-            {hud ? `${m.match.stocks(hud.stocks[i]!)} ${m.match.damage(hud.damage[i]!)}` : ''}
-          </span>
+          <HudPlayer
+            key={i}
+            slot={i === 0 ? 'p1' : 'p2'}
+            name={resolveName(c.name, i === 0 ? 'p1' : 'p2')}
+            stocksText={hud ? m.match.stocks(hud.stocks[i]!) : ''}
+            damageText={hud ? m.match.damage(hud.damage[i]!) : ''}
+          />
         ))}
-      </div>
+      </HudPanel>
       <div className="match__stage">
         <MatchCanvas p1={p1} p2={p2} stage={setup.stage} onHud={onHud} onFinish={onFinish} />
       </div>
@@ -229,9 +197,9 @@ export function ReportScreen({
         </section>
       </div>
       <p className="practice__note">{m.report.note}</p>
-      <button type="button" className="button button--main" onClick={onRedesign}>
+      <Button variant="main" onClick={onRedesign}>
         {m.report.redesign}
-      </button>
+      </Button>
     </div>
   )
 }
@@ -279,22 +247,22 @@ export function RedesignScreen({
           />
         </>
       ) : (
-        <button type="button" className="button button--sub" onClick={() => setFoeOpen(true)}>
+        <Button variant="sub" onClick={() => setFoeOpen(true)}>
           {m.prep.changeFoe}
-        </button>
+        </Button>
       )}
       <footer className="flow-footer">
-        <button type="button" className="button button--sub" onClick={onBack}>
+        <Button variant="sub" onClick={onBack}>
           {m.redesign.back}
-        </button>
+        </Button>
         <div className="stat-screen__next">
           {/* 押せない理由は、ボタンの近くに出す */}
           <p className="stat-screen__reason" role="status">
             {!changed ? m.redesign.mustChange : ''}
           </p>
-          <button type="button" className="button button--main" disabled={!ok} onClick={onRematch}>
+          <Button variant="main" disabled={!ok} onClick={onRematch}>
             {m.redesign.rematch}
-          </button>
+          </Button>
         </div>
       </footer>
     </div>
@@ -340,12 +308,12 @@ export function CompareScreen({
       </table>
       <p className="practice__note">{m.compare.note}</p>
       <footer className="flow-footer">
-        <button type="button" className="button button--main" onClick={onRedesign}>
+        <Button variant="main" onClick={onRedesign}>
           {m.compare.again}
-        </button>
-        <button type="button" className="button button--sub" onClick={onEnd}>
+        </Button>
+        <Button variant="sub" onClick={onEnd}>
           {m.compare.finish}
-        </button>
+        </Button>
       </footer>
     </div>
   )
@@ -366,9 +334,9 @@ export function EndScreen({ session, onReset }: { session: Session; onReset: () 
         <p className="practice__note">{stage.name}</p>
       </section>
       <p className="practice__note">{m.end.qrNote}</p>
-      <button type="button" className="button button--sub" onClick={onReset}>
+      <Button variant="sub" onClick={onReset}>
         {m.end.reset}
-      </button>
+      </Button>
     </div>
   )
 }

@@ -1,0 +1,265 @@
+/* 共通コンポーネント（docs/06-ui/ui-design.md §6）。色・大きさは、theme.css の変数だけを使う */
+
+/* --- ボタン（主・補助）。高さ 56 ピクセル以上。押せないときは、見た目を変える --- */
+.button,
+.stepper-button {
+  min-height: var(--min-target);
+  min-width: var(--min-target);
+  padding: 0 1.25rem;
+  font: inherit;
+  font-size: var(--fs-body);
+  border: var(--border) solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-sub);
+  color: var(--c-on-sub);
+  cursor: pointer;
+}
+.button--main {
+  background: var(--c-main);
+  border-color: var(--c-main);
+  color: var(--c-on-main);
+  font-weight: 700;
+}
+.button:hover:not(:disabled),
+.stepper-button:hover:not(:disabled) {
+  border-color: var(--c-main-hover);
+}
+.button--main:hover:not(:disabled) {
+  background: var(--c-main-hover);
+}
+/* 押せない: 薄くするだけでなく、斜線の模様で、押せないことが、形でも分かる */
+.button:disabled,
+.stepper-button:disabled {
+  background: repeating-linear-gradient(135deg, var(--c-sub) 0 8px, var(--c-surface) 8px 16px);
+  border-style: dashed;
+  color: var(--c-text-sub);
+  cursor: not-allowed;
+}
+.button-wrap {
+  display: inline-grid;
+  gap: 0.25rem;
+  justify-items: start;
+}
+.button-wrap__reason {
+  font-size: var(--fs-note);
+  color: var(--c-text-sub);
+  min-height: 1.4em;
+}
+
+/* --- 選択肢のカード。選んだものは、枠と ✓ で示す --- */
+.choice {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  min-width: 4.2rem;
+  padding: 0.35rem 0.5rem;
+  border: var(--border) solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  cursor: pointer;
+}
+.choice:hover {
+  border-color: var(--c-main-hover);
+}
+.choice[data-checked='true'] {
+  border-color: var(--c-main);
+  background: var(--c-selected-bg);
+  box-shadow: 0 0 0 3px var(--c-main);
+  font-weight: 700;
+}
+.choice:focus-within {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+}
+.choice input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.choice--compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: var(--min-target);
+  padding: 0 1rem;
+}
+.choice__check {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.35rem;
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--c-main);
+  color: var(--c-on-main);
+  font-size: var(--fs-note);
+  font-weight: 700;
+  border: 2px solid var(--c-surface);
+  forced-color-adjust: none;
+}
+.choice--compact .choice__check {
+  position: static;
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+/* --- メッセージ帯: 成功（✓）、注意（！）、情報（i）。記号と文字つき --- */
+.message-band {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.4rem 0.9rem;
+  border: var(--border) solid currentColor;
+  border-radius: var(--radius);
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+.message-band__symbol {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  color: var(--c-surface);
+  font-weight: 700;
+}
+.message-band--success {
+  color: var(--c-success);
+  background: var(--c-success-bg);
+}
+.message-band--success .message-band__symbol {
+  background: var(--c-success);
+}
+.message-band--warn {
+  color: var(--c-warn);
+  background: var(--c-warn-bg);
+}
+.message-band--warn .message-band__symbol {
+  background: var(--c-warn);
+}
+.message-band--info {
+  color: var(--c-info);
+  background: var(--c-info-bg);
+}
+.message-band--info .message-band__symbol {
+  background: var(--c-info);
+}
+.message-band > span:last-child {
+  color: var(--c-text);
+}
+
+/* --- ツールチップ --- */
+.tooltip {
+  position: relative;
+  display: inline-grid;
+}
+.tooltip__text {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.25rem);
+  z-index: 10;
+  min-width: 12rem;
+  max-width: 24rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius);
+  background: var(--c-text);
+  color: var(--c-surface);
+  font-size: var(--fs-note);
+  font-weight: 400;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.tooltip:hover .tooltip__text,
+.tooltip:focus .tooltip__text,
+.tooltip:focus-within .tooltip__text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* --- 段階の表示（画面の上部）。いまの段階を、色と ▶ で強調 --- */
+.step-bar {
+  display: flex;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  flex-wrap: wrap;
+}
+.step-bar li {
+  padding: 0.1rem 0.9rem;
+  border: var(--border) solid var(--c-border);
+  border-radius: 999px;
+  font-size: var(--fs-note);
+  background: var(--c-surface);
+}
+.step-bar li[data-current='true'] {
+  background: var(--c-main);
+  border-color: var(--c-main);
+  color: var(--c-on-main);
+  font-weight: 700;
+}
+
+/* --- 対戦中の表示（HUD）。ダークな背景。数字は 48 ピクセル以上 --- */
+.hud-panel {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  background: var(--c-battle-bg);
+  color: var(--c-battle-text);
+}
+.hud-panel__headline {
+  margin: 0;
+  font-size: var(--fs-heading);
+  font-weight: 700;
+  text-align: center;
+}
+.hud-panel__players {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.hud-player {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 0 1rem;
+}
+.hud-player__tag {
+  grid-column: 1 / -1;
+  margin: 0;
+  display: inline-block;
+  justify-self: start;
+  padding: 0 0.7rem;
+  border-radius: 6px;
+  font-size: var(--fs-note);
+}
+.hud-player--p1 .hud-player__tag {
+  background: var(--c-p1);
+  color: var(--c-on-p1);
+}
+.hud-player--p2 .hud-player__tag {
+  background: var(--c-p2);
+  color: var(--c-on-p2);
+}
+.hud-player__tag span {
+  font-weight: 400;
+}
+.hud-player__damage {
+  margin: 0;
+  font-size: var(--fs-number);
+  font-weight: 700;
+  line-height: 1.1;
+}
+.hud-player__stocks {
+  margin: 0;
+  font-size: var(--fs-body);
+}

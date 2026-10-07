@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { editorFromStage, type EditorState } from '../stage/index.ts'
 import { canGoBack, nextMatchNo, type Session, type SessionRepository } from '../session/index.ts'
 import { AppearanceScreen } from './AppearanceScreen.tsx'
+import { StepBar } from './components/index.ts'
 import {
   CompareScreen,
   EndScreen,
@@ -10,7 +11,6 @@ import {
   RedesignScreen,
   ReportScreen,
   StartScreen,
-  StepBar,
 } from './FlowScreens.tsx'
 import { PracticeScreen } from './PracticeScreen.tsx'
 import { useSession } from './session.ts'

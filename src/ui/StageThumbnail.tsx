@@ -1,7 +1,8 @@
+import { BATTLE_COLORS, PLAYER_COLORS } from '../assets/index.ts'
 import type { StageData } from '../model/index.ts'
 
-// 1P は青系、2P は橙系（ui-design.md §4）
-const SPAWN_COLORS = ['#4fc3f7', '#ff7a59'] as const
+// 1P は青系、2P は橙系（assets/theme.ts）
+const SPAWN_COLORS = [PLAYER_COLORS.p1.bg, PLAYER_COLORS.p2.bg] as const
 
 /** ステージの見本の絵（SVG。24 × 14 マス）。ブロックと、1P・2P のスタート位置 */
 export function StageThumbnail({ stage, width = 168 }: { stage: StageData; width?: number }) {
@@ -28,7 +29,7 @@ export function StageThumbnail({ stage, width = 168 }: { stage: StageData; width
       aria-hidden="true"
       focusable="false"
     >
-      <rect width={cols} height={rows} fill="#262f45" />
+      <rect width={cols} height={rows} fill={BATTLE_COLORS.stage} />
       {runs.map((r) => (
         <rect
           key={`${r.row}-${r.col}`}
@@ -36,7 +37,7 @@ export function StageThumbnail({ stage, width = 168 }: { stage: StageData; width
           y={r.row}
           width={r.len}
           height={1}
-          fill="#8fa3c8"
+          fill={BATTLE_COLORS.block}
         />
       ))}
       {(['p1', 'p2'] as const).map((slot, i) => (

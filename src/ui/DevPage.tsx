@@ -14,6 +14,7 @@ import { FighterGallery } from './FighterGallery.tsx'
 import { KeyCheck } from './KeyCheck.tsx'
 import { StageCanvas } from './StageCanvas.tsx'
 import { StatScreen } from './StatScreen.tsx'
+import { Button } from './components/index.ts'
 
 function StatDemo() {
   const [stats, setStats] = useState<Stats>({ ...DEFAULT_STATS })
@@ -78,9 +79,9 @@ function PracticeDemo() {
     return (
       <>
         <p role="status">つぎは 「たいせんの じゅんび」（S06。#35 で つなぐよ）</p>
-        <button type="button" className="button button--sub" onClick={() => setView('practice')}>
+        <Button variant="sub" onClick={() => setView('practice')}>
           もういちど ためす
-        </button>
+        </Button>
       </>
     )
   }

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { FighterLook } from '../assets/index.ts'
+import { EFFECT_COLORS, type FighterLook } from '../assets/index.ts'
 import { IDLE, sampleClip } from '../fighter/render/index.ts'
 import { drawFighter } from '../render/index.ts'
 
@@ -40,7 +40,7 @@ export function FighterPreview({ look, label, height = 360 }: FighterPreviewProp
       ctx.setTransform(1, 0, 0, 1, 0, 0)
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       // 足元の影
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.18)'
+      ctx.fillStyle = EFFECT_COLORS.shadow
       ctx.beginPath()
       ctx.ellipse(camera.offsetX, camera.offsetY, 0.3 * scale, 0.05 * scale, 0, 0, Math.PI * 2)
       ctx.fill()

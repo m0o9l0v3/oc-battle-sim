@@ -23,8 +23,8 @@ describe('S04 ステージの選択', () => {
 
   it('選んだカードには、色だけでなく、✓ の印が付く（1 枚だけ）', () => {
     const markup = html()
-    expect((markup.match(/stage-card__check/g) ?? []).length).toBe(1)
-    expect(markup).toMatch(/data-checked="true"[^]*?stage-card__check[^]*?ひょうじゅん/)
+    expect((markup.match(/choice__check/g) ?? []).length).toBe(1)
+    expect(markup).toMatch(/data-checked="true"[^]*?choice__check[^]*?ひょうじゅん/)
   })
 
   it('入ったときから、標準が選ばれ、「つかえるよ！」。「つぎへ」は押せる', () => {
