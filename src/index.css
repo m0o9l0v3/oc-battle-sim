@@ -387,3 +387,213 @@ main {
   border: 2px solid #fff;
   forced-color-adjust: none;
 }
+
+/* ステージのエディタ（S04。stage-editor.md §4、§7、§8）。ビジュアルテーマ（#36）ができたら、色・大きさをそちらへ寄せる */
+.stage-editor {
+  max-width: 1040px;
+}
+.stage-editor__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.stage-editor__heading {
+  margin: 0;
+  font-size: 1.5rem;
+}
+.stage-editor__name {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem 0.5rem;
+  align-items: center;
+}
+.stage-editor__name input {
+  font-size: 1.05rem;
+  padding: 0.3rem 0.5rem;
+  border: 2px solid #8fa3c8;
+  border-radius: 8px;
+}
+.stage-editor__name small {
+  grid-column: 1 / -1;
+}
+.stage-editor__main {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-top: 0.75rem;
+}
+.stage-editor__presets {
+  flex: none;
+  display: grid;
+  gap: 0.5rem;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  width: 140px;
+}
+.stage-editor__presets legend {
+  font-weight: 700;
+  padding: 0;
+  margin-bottom: 0.25rem;
+}
+.stage-card--small {
+  width: auto;
+  padding: 0.35rem;
+}
+.stage-editor__work {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.stage-editor__frame {
+  border: 3px solid transparent;
+  border-radius: 8px;
+}
+.stage-editor__grid {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  touch-action: none;
+  cursor: crosshair;
+  user-select: none;
+}
+.stage-editor__toast {
+  margin: 0;
+  min-height: 1.4em;
+  font-weight: 700;
+  color: #b45309;
+}
+.stage-editor__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.tool {
+  position: relative;
+  padding: 0.4rem 0.8rem;
+  border: 2px solid #8fa3c8;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+.tool[data-checked='true'] {
+  border-color: #1d4ed8;
+  background: #e8efff;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px #1d4ed8;
+}
+.tool input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.tool:focus-within {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
+}
+.stage-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.stage-editor__outside {
+  margin: 0;
+}
+.stage-editor__result {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 3px solid transparent;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.stage-editor__ok {
+  margin: 0;
+  font-weight: 700;
+  color: #166534;
+}
+.stage-editor__violations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.stage-editor__violation {
+  all: unset;
+  cursor: pointer;
+  color: #b91c1c;
+  font-weight: 700;
+  text-decoration: underline dotted;
+}
+.stage-editor__violation:focus-visible {
+  outline: 3px solid #f59e0b;
+}
+.stage-editor__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+.stage-editor__next {
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+}
+.stage-editor__next-hint {
+  margin: 0;
+}
+/* 強調（メッセージをクリックしたとき）: 太い枠が、数秒、点滅する。色だけに頼らない */
+[data-flash='true'] {
+  animation: stage-flash 0.5s steps(2, jump-none) 5;
+  outline: 4px solid #e53935;
+  outline-offset: 2px;
+}
+@keyframes stage-flash {
+  50% {
+    outline-color: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-flash='true'] {
+    animation: none;
+  }
+}
+@media (max-width: 800px) {
+  .stage-editor__main {
+    flex-direction: column;
+  }
+  .stage-editor__presets {
+    width: auto;
+    grid-auto-flow: column;
+  }
+}
+/* SVG の部品は、outline が描かれないので、枠の太さと明滅で示す */
+g[data-flash='true'] {
+  outline: none;
+  animation: svg-flash 0.5s steps(2, jump-none) 5;
+}
+g[data-flash='true'] rect {
+  stroke-width: 0.3;
+}
+@keyframes svg-flash {
+  50% {
+    opacity: 0.2;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  g[data-flash='true'] {
+    animation: none;
+  }
+}
