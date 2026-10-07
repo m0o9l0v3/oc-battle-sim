@@ -7,11 +7,12 @@ import type { PlayerInput } from './input.ts'
 import { DEFAULT_MATCH_RULES, type MatchRules } from './rules.ts'
 import type { StageData, Stats } from '../model/index.ts'
 
-/** 試し動かしのルール: 決着しない（ストックは 99、制限時間は 1 日）。READY・END の待ちはなし */
+/** 試し動かしのルール: 決着しない（`endless`。ストックは減らず、時間切れも決着にならない）。READY・END の待ちはなし */
 export const PRACTICE_RULES: Readonly<MatchRules> = Object.freeze({
   ...DEFAULT_MATCH_RULES,
-  stocks: 99,
+  stocks: 1,
   timeLimitSec: 60 * 60 * 24,
+  endless: true,
   readySec: 0,
   endSec: 0,
 })

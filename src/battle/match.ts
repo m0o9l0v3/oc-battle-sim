@@ -316,7 +316,8 @@ export function stepMatch(
       })
       f = {
         ...f,
-        stocks: f.stocks - 1,
+        // 決着しない試合（試し動かし）では、ストックを減らさない（リスポーンできなくならない）
+        stocks: ctx.rules.endless ? f.stocks : f.stocks - 1,
         respawnIn: ctx.steps.respawnDelay,
         shield: false,
         outSteps: 0,
@@ -364,11 +365,13 @@ export function stepMatch(
 
   // 7. 時間と勝敗。時間切れと撃墜が同じステップなら、撃墜を先に処理したうえで、§7.1 の順で判定
   const timeLeft = Math.max(0, state.timeLeft - 1 - Math.max(0, clockSkip))
-  const outcome = decideOutcome({
-    stocks: [fighters[0].stocks, fighters[1].stocks],
-    damage: [fighters[0].combat.damage, fighters[1].combat.damage],
-    timeUp: timeLeft === 0,
-  })
+  const outcome = ctx.rules.endless
+    ? null
+    : decideOutcome({
+        stocks: [fighters[0].stocks, fighters[1].stocks],
+        damage: [fighters[0].combat.damage, fighters[1].combat.damage],
+        timeUp: timeLeft === 0,
+      })
 
   if (outcome) {
     emit({

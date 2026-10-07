@@ -10,6 +10,8 @@ export type MatchRules = {
   respawnInvincibleSec: number
   /** 場外領域の余白（セル）。ステージの範囲の外側 */
   blastMargin: { left: number; right: number; bottom: number; top: number }
+  /** 決着しない（試し動かし）。ストックは減らず、時間切れ・撃墜で END に入らない。省略は false */
+  endless?: boolean
 }
 
 export const DEFAULT_MATCH_RULES: MatchRules = {

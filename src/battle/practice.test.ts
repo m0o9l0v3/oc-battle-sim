@@ -50,7 +50,38 @@ describe('試し動かしの設定', () => {
     const { states } = run(DEFAULT_STATS, () => inp(), 60 * 60 * 10)
     expect(states.at(-1)!.phase).toBe('fight')
     expect(states.at(-1)!.outcome).toBeNull()
-    expect(PRACTICE_RULES.stocks).toBeGreaterThan(50)
+    expect(PRACTICE_RULES.endless).toBe(true)
+  })
+
+  it('決着しない設定は、ストックが 1 でも、時間切れでも、END に入らない（撃墜のたびに、リスポーンする）', () => {
+    const ctx = createPracticeContext(stage, DEFAULT_STATS)
+    const rules = { ...ctx.rules, stocks: 1, timeLimitSec: 1 }
+    const c = { ...ctx, rules, steps: { ...ctx.steps, time: 60 } }
+    let s: MatchState = createMatchState(c)
+    let kos = 0
+    let respawns = 0
+    for (let i = 0; i < 3000; i++) {
+      // 左へ歩いて落ち、リスポーンしたら、また歩く
+      const r = stepMatch(s, [inp({ left: true }), DUMMY_INPUT], c)
+      s = r.state
+      kos += r.events.filter((e) => e.type === 'ko').length
+      respawns += r.events.filter((e) => e.type === 'respawn').length
+      expect(s.phase).toBe('fight')
+      expect(s.outcome).toBeNull()
+    }
+    expect(kos).toBeGreaterThanOrEqual(2)
+    expect(respawns).toBeGreaterThanOrEqual(2)
+    expect(s.fighters[0].stocks).toBe(1) // 減らない
+  })
+
+  it('決着しない設定でなければ、これまでどおり END に入る（対戦のルールは変わらない）', () => {
+    const ctx = createPracticeContext(stage, DEFAULT_STATS)
+    const c = { ...ctx, rules: { ...ctx.rules, endless: false, stocks: 1 } }
+    let s: MatchState = createMatchState(c)
+    for (let i = 0; i < 3000 && s.phase !== 'end'; i++) {
+      s = stepMatch(s, [inp({ left: true }), DUMMY_INPUT], c).state
+    }
+    expect(s.phase).toBe('end')
   })
 
   it('1P の能力値を、そのまま使う。ダミーは標準', () => {
