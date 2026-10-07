@@ -5,6 +5,7 @@ import {
   createMatchState,
   DEFAULT_MATCH_RULES,
   isMatchFinished,
+  MIN_RECOVERY_STEPS,
   NO_INPUT,
   stepMatch,
   type MatchContext,
@@ -175,6 +176,41 @@ describe('指標の記録（battle-report.md §4、§5）', () => {
     expect(run.metrics[0].jumps).toBeGreaterThanOrEqual(1)
     expect(run.metrics[0].attacksThrown).toBe(2)
     expect(run.metrics[1].attacksThrown).toBe(0)
+  })
+})
+
+describe('攻撃を出した回数（イベントで数える）', () => {
+  const hit = (attacker: 0 | 1): MatchEvent => ({
+    type: 'hit',
+    step: 1,
+    attacker,
+    victim: (1 - attacker) as 0 | 1,
+    damageDealt: 12,
+    damageAfter: 12,
+    launchSpeed: 8,
+    vx: 1,
+    vy: -1,
+    hitstunSteps: 10,
+  })
+
+  it('同じステップで、相手の攻撃を受けて、すぐ打ち消されても、出した 1 回として数える', () => {
+    // 状態では、前も後も、攻撃なし。それでも、攻撃のイベントがあれば、数える
+    const s0 = createMatchState(ctxOf())
+    const rec = new MetricsRecorder()
+    rec.record(s0, s0, [{ type: 'attack', step: 1, fighter: 1 }, hit(0)])
+    expect(rec.result(s0)[1].attacksThrown).toBe(1)
+    expect(rec.result(s0)[0].attacksThrown).toBe(0)
+  })
+
+  it('実際の試合: stepMatch が、攻撃を出した瞬間に、1 回ずつ、イベントを出す（打ち消されたものを含む）', () => {
+    const ctx = quick()
+    // 1P が、5 ステップごとに攻撃を押し続ける。攻撃中は、新しい攻撃を始められない
+    const run = play(ctx, (_s, i) => [inp({ attackPressed: i % 5 === 0 }), inp()], 300)
+    const events = run.events.filter((e) => e.type === 'attack' && e.fighter === 0).length
+    expect(run.metrics[0].attacksThrown).toBe(events)
+    expect(events).toBeGreaterThanOrEqual(10)
+    // 攻撃は、24 ステップかかるので、300 ステップの間に、最大 13 回
+    expect(events).toBeLessThanOrEqual(13)
   })
 })
 
@@ -366,15 +402,33 @@ describe('ふっとんだ きょり（§4.3、§5）', () => {
   })
 })
 
+describe('復帰の失敗（0.3 秒未満は数えない）', () => {
+  const fail = (outSteps: number): MatchEvent => ({
+    type: 'recovery_failure',
+    step: 1,
+    fighter: 0,
+    outSteps,
+  })
+  it('場外にいた時間が 18 ステップ（0.3 秒）以上のものだけ、数える', () => {
+    const s0 = createMatchState(ctxOf())
+    const rec = new MetricsRecorder()
+    rec.record(s0, s0, [fail(1), fail(17), fail(18), fail(120)])
+    expect(rec.result(s0)[0].recoveryFailure).toBe(2)
+  })
+})
+
 describe('復帰の成否・決定性・MatchResult', () => {
-  it('復帰の成否は、イベントの数と一致する', () => {
+  it('復帰の成否は、イベント（失敗は、0.3 秒以上のもの）の数と一致する', () => {
     const r = botMatch(4)
     for (const i of [0, 1] as const) {
       expect(r.metrics[i].recoverySuccess).toBe(
         r.events.filter((e) => e.type === 'recovery_success' && e.fighter === i).length,
       )
       expect(r.metrics[i].recoveryFailure).toBe(
-        r.events.filter((e) => e.type === 'recovery_failure' && e.fighter === i).length,
+        r.events.filter(
+          (e) =>
+            e.type === 'recovery_failure' && e.fighter === i && e.outSteps >= MIN_RECOVERY_STEPS,
+        ).length,
       )
     }
   })

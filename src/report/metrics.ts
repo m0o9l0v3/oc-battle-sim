@@ -3,7 +3,7 @@
 //  - 同じ入力から、同じ結果（乱数・時計なし）。描画・DOM から独立していて、ユニットテストできる
 //  - 1 ステップあたりの処理は、数個の数字の更新だけ（60 FPS に影響しない。NFR-03）。積み上げ用の数字は、
 //    記録のためだけに持つ可変の状態（ここの外には出さない）。ステップごとに、新しい配列・オブジェクトを作らない
-import type { MatchEvent, MatchState } from '../battle/index.ts'
+import { MIN_RECOVERY_STEPS, type MatchEvent, type MatchState } from '../battle/index.ts'
 import type {
   CharacterConfig,
   MatchOutcome,
@@ -78,13 +78,6 @@ export class MetricsRecorder {
   record(prev: MatchState, curr: MatchState, events: readonly MatchEvent[]): void {
     if (this.ended) return
 
-    // 攻撃を出した瞬間（攻撃なし → 攻撃中）。攻撃を出した回数（画面には出さない）
-    for (const i of [0, 1] as const) {
-      if (prev.fighters[i].combat.attack === null && curr.fighters[i].combat.attack !== null) {
-        this.sides[i].attacksThrown++
-      }
-    }
-
     for (const e of events) {
       switch (e.type) {
         case 'hit': {
@@ -105,6 +98,10 @@ export class MetricsRecorder {
           v.knockbackFromX = curr.fighters[e.victim].body.x
           break
         }
+        case 'attack':
+          // 攻撃を出した回数（画面には出さない）。同じステップで、すぐ打ち消されたものも、数える
+          this.sides[e.fighter].attacksThrown++
+          break
         case 'jump':
           this.sides[e.fighter].jumps++
           break
@@ -138,7 +135,8 @@ export class MetricsRecorder {
           this.sides[e.fighter].recoverySuccess++
           break
         case 'recovery_failure':
-          this.sides[e.fighter].recoveryFailure++
+          // 場外にいた時間が 0.3 秒未満のものは、復帰として記録しない（recovery.md §5。成功と同じ）
+          if (e.outSteps >= MIN_RECOVERY_STEPS) this.sides[e.fighter].recoveryFailure++
           break
         case 'match_end':
           // 吹き飛ばされている最中の側がいれば、その時点の位置で測定を終える
