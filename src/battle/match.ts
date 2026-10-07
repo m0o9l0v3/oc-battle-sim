@@ -136,6 +136,8 @@ export type MatchEvent = { step: number } & (
       /** 場外で、復帰を試みていた */
       recoveryAttempted: boolean
     }
+  /** 攻撃を出した（攻撃が始まった）。同じステップで、すぐに打ち消されても、出した 1 回として数える（指標用） */
+  | { type: 'attack'; fighter: 0 | 1 }
   | { type: 'respawn'; fighter: 0 | 1 }
   | { type: 'recovery_success'; fighter: 0 | 1; outSteps: number }
   | { type: 'recovery_failure'; fighter: 0 | 1; outSteps: number }
@@ -251,7 +253,9 @@ export function stepMatch(
     f = { ...f, control, facing: ctl.facing }
 
     if (ctl.attack) {
+      const wasIdle = f.combat.attack === null
       f = tryStartAttack(f, ctl.facing)
+      if (wasIdle && f.combat.attack !== null) emit({ type: 'attack', fighter: i })
       if (f.shield) {
         // リスポーン後の無敵は、自分が攻撃を出したら解除（無敵のまま攻撃し続けない）
         f = { ...f, shield: false, combat: { ...f.combat, invuln: 0 } }

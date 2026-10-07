@@ -12,6 +12,7 @@ import {
   type SessionData,
   type SessionSnapshot,
 } from '../model/index.ts'
+import { isPlayerMetrics } from '../report/index.ts'
 import { validateStage } from '../stage/index.ts'
 import { restoreScreen } from './flow.ts'
 import { sessionFromData, type Session } from './state.ts'
@@ -69,9 +70,16 @@ function readMatch(v: unknown): MatchRecord | null {
     outcome,
     durationSec: v.durationSec,
   }
-  // 指標は、構造を見ずに通すと、壊れた値が入る。対戦指標の記録（#37）ができるまで、持っていれば、そのまま持つ
-  if (isRecord(v.p1)) record.p1 = v.p1 as MatchRecord['p1']
-  if (isRecord(v.p2)) record.p2 = v.p2 as MatchRecord['p2']
+  // 指標（battle-report.md §6）。持っていれば、形を確かめる。壊れていたら、保存全体を捨てる。
+  // 指標を持たない記録（指標の記録ができる前の保存）も、読み込める
+  if (v.p1 !== undefined) {
+    if (!isPlayerMetrics(v.p1)) return null
+    record.p1 = v.p1
+  }
+  if (v.p2 !== undefined) {
+    if (!isPlayerMetrics(v.p2)) return null
+    record.p2 = v.p2
+  }
   return record
 }
 

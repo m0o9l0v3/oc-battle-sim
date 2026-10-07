@@ -154,6 +154,38 @@ describe('MVP の流れ（S01 → S12）', () => {
   })
 })
 
+describe('戦の結果に、指標が付く（FINISH_MATCH）', () => {
+  it('指標を渡すと、戦の記録に、1P・2P の指標が入る。なくても、記録できる', () => {
+    const m = {
+      stocksLeft: 1,
+      damageDealt: 1,
+      damageTaken: 2,
+      hitsLanded: 3,
+      attacksThrown: 4,
+      kos: 0,
+      selfKos: 0,
+      deaths: 2,
+      maxDamageEndured: 9,
+      recoverySuccess: 0,
+      recoveryFailure: 0,
+      jumps: 0,
+      moveDistance: 0,
+      avgKnockbackDistance: null,
+    }
+    let s = run(
+      toS06(),
+      { type: 'BEGIN_MATCH' },
+      { type: 'FINISH_MATCH', outcome: win, durationSec: 5, p1: m, p2: { ...m, kos: 2 } },
+    )
+    expect(s.data.matches[0]!.p1).toEqual(m)
+    expect(s.data.matches[0]!.p2!.kos).toBe(2)
+    s = run(s, { type: 'REDESIGN' })
+    s = withP1(s, stats(6, 4, 5, 5))
+    s = run(s, { type: 'BEGIN_MATCH' }, { type: 'FINISH_MATCH', outcome: win, durationSec: 5 })
+    expect(s.data.matches[1]!.p1).toBeUndefined()
+  })
+})
+
 describe('戻る・進むのルール（user-flow.md §5.11）', () => {
   it('S03 → S02、S04 → S03、S06 → S05。入力した内容は保持する', () => {
     let s = run(createSession(), { type: 'START' })

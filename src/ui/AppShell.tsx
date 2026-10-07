@@ -47,7 +47,7 @@ export function Screens({ session, dispatch }: { session: Session; dispatch: Dis
   const back = canGoBack(session) ? () => dispatch({ type: 'BACK' }) : undefined
   const last = data.matches.at(-1)
   const finish = useCallback(
-    (r: { outcome: import('../model/index.ts').MatchOutcome; durationSec: number }) =>
+    (r: Parameters<React.ComponentProps<typeof MatchScreen>['onFinish']>[0]) =>
       dispatch({ type: 'FINISH_MATCH', ...r }),
     [dispatch],
   )

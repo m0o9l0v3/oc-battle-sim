@@ -161,6 +161,56 @@ describe('S05 から S03 へ戻っている途中の印（returnToPractice）', 
   })
 })
 
+describe('戦の記録の指標（battle-report.md §6）', () => {
+  const metrics = (n = 1) => ({
+    stocksLeft: 2,
+    damageDealt: 40.5,
+    damageTaken: 10,
+    hitsLanded: 3,
+    attacksThrown: 9,
+    kos: n,
+    selfKos: 0,
+    deaths: 1,
+    maxDamageEndured: 55,
+    recoverySuccess: 1,
+    recoveryFailure: 0,
+    jumps: 12,
+    moveDistance: 31.2,
+    avgKnockbackDistance: 2.5,
+  })
+
+  it('指標つきの戦の記録を、保存して、そのまま読み戻せる。指標のない記録も読める', () => {
+    const repo = createRepository(new MemoryStorage())
+    const s = played()
+    const withMetrics = {
+      ...s,
+      data: {
+        ...s.data,
+        matches: s.data.matches.map((m, i) =>
+          i === 0 ? { ...m, p1: metrics(), p2: { ...metrics(0), avgKnockbackDistance: null } } : m,
+        ),
+      },
+    }
+    repo.save(toSnapshot(withMetrics))
+    const loaded = repo.load()!
+    expect(loaded.data.matches[0]!.p1).toEqual(metrics())
+    expect(loaded.data.matches[0]!.p2!.avgKnockbackDistance).toBeNull()
+    expect(loaded.data.matches[1]!.p1).toBeUndefined()
+  })
+
+  it('壊れた指標は、保存全体を捨てる', () => {
+    const storage = new MemoryStorage()
+    const repo = createRepository(storage)
+    repo.save(toSnapshot(played()))
+    for (const bad of [{ ...metrics(), kos: -1 }, { ...metrics(), jumps: 'x' }, { jumps: 1 }, 5]) {
+      const snap = JSON.parse(storage.getItem(SESSION_STORAGE_KEY)!)
+      snap.data.matches[0].p1 = bad
+      storage.setItem(SESSION_STORAGE_KEY, JSON.stringify(snap))
+      expect(repo.load()).toBeNull()
+    }
+  })
+})
+
 describe('壊れた保存は、全体を捨てて S01 から', () => {
   const corrupt: Record<string, (d: Record<string, unknown>) => void> = {
     '見た目の ID が未知': (d) => {
