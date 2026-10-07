@@ -9,7 +9,8 @@ import {
 } from '../battle/index.ts'
 import { createCanvasView } from '../engine/index.ts'
 import { KeyboardInput } from '../input/index.ts'
-import type { CharacterConfig, MatchOutcome, StageData } from '../model/index.ts'
+import type { CharacterConfig, MatchOutcome, PlayerMetrics, StageData } from '../model/index.ts'
+import { MetricsRecorder } from '../report/index.ts'
 import {
   createFighterRenderer,
   createStageRenderer,
@@ -35,7 +36,13 @@ export type MatchCanvasProps = {
   stage: StageData
   onHud: (hud: MatchHud) => void
   /** 勝敗が確定し、END の表示が終わったとき、1 回だけ */
-  onFinish: (result: { outcome: MatchOutcome; durationSec: number }) => void
+  onFinish: (result: {
+    outcome: MatchOutcome
+    durationSec: number
+    /** 採用した指標（1P、2P。battle-report.md §4） */
+    p1: PlayerMetrics
+    p2: PlayerMetrics
+  }) => void
 }
 
 const sameHud = (a: MatchHud, b: MatchHud) =>
@@ -81,6 +88,8 @@ export function MatchCanvas({ p1, p2, stage, onHud, onFinish }: MatchCanvasProps
     let prev = curr
     let finished = false
     let fightSteps = 0
+    // 指標は、試合中のイベントから、その場で積み上げる（試合のあとに、読み直さない）
+    const recorder = new MetricsRecorder()
     let hud: MatchHud | null = null
     fighters.reset()
     fighters.step(curr)
@@ -94,6 +103,7 @@ export function MatchCanvas({ p1, p2, stage, onHud, onFinish }: MatchCanvasProps
         prev = curr
         const r = stepMatch(curr, [bots[0].sample({ step }), bots[1].sample({ step })], ctx)
         curr = r.state
+        recorder.record(prev, curr, r.events)
         fighters.step(curr)
         for (const e of r.events) if (e.type === 'match_end') fightSteps = e.fightSteps
         const next: MatchHud = {
@@ -111,9 +121,12 @@ export function MatchCanvas({ p1, p2, stage, onHud, onFinish }: MatchCanvasProps
         }
         if (curr.outcome && isMatchFinished(curr, ctx)) {
           finished = true
+          const [p1m, p2m] = recorder.result(curr)
           cbRef.current.onFinish({
             outcome: curr.outcome,
             durationSec: Math.round(fightSteps / 60),
+            p1: p1m,
+            p2: p2m,
           })
         }
       },
