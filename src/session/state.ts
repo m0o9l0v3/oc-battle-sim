@@ -37,11 +37,10 @@ export function createSession(): Session {
   }
 }
 
-export const sessionFromData = (data: SessionData): Session => ({
-  data,
-  returnToPractice: false,
-  current: null,
-})
+export const sessionFromData = (saved: SessionData): Session => {
+  const { returnToPractice, ...data } = saved
+  return { data, returnToPractice: returnToPractice === true, current: null }
+}
 
 export const screenOf = (s: Session): ScreenId => s.data.screen
 

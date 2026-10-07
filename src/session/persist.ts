@@ -97,7 +97,7 @@ export function readSessionData(v: unknown): SessionData | null {
     if (matches.length > 0 && r.matchNo <= matches[matches.length - 1]!.matchNo) return null
     matches.push(r)
   }
-  return {
+  const data: SessionData = {
     p1: p1.config,
     p2: p2.config,
     stage: stage.stage,
@@ -105,6 +105,9 @@ export function readSessionData(v: unknown): SessionData | null {
     matches,
     screen: restoreScreen(screen as ScreenId),
   }
+  // S05 から S03 へ戻っている途中だけ、持つ
+  if (v.returnToPractice === true && screen === 'S03') data.returnToPractice = true
+  return data
 }
 
 export function readSnapshot(v: unknown): SessionSnapshot | null {
@@ -174,7 +177,7 @@ export function createRepository(
 export const toSnapshot = (s: Session, sessionId: string | null = null): SessionSnapshot => ({
   schemaVersion: 1,
   sessionId,
-  data: s.data,
+  data: s.returnToPractice ? { ...s.data, returnToPractice: true } : s.data,
 })
 
 // --- 起動 ---

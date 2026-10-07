@@ -23,6 +23,8 @@ const run = (s: Session, ...actions: FlowAction[]) => actions.reduce(reduceFlow,
 const at = (s: Session) => s.data.screen
 const withP1 = (s: Session, st: Stats): Session =>
   reduceFlow(s, { type: 'SET_P1', config: { ...s.data.p1, stats: st } })
+/** 1P を 6/4/5/5 にする（第 1 戦の設定として使う） */
+const withP1Raw = (s: Session): Session => withP1(s, stats(6, 4, 5, 5))
 const win = { winner: 'p1', reason: 'stocks' } as const
 
 /** S01 → S06 まで、すべて標準で進める */
@@ -336,6 +338,82 @@ describe('編集できる画面・できない画面', () => {
   it('FINISH_MATCH は、対戦中だけ。固定した設定がなければ無視する', () => {
     const s = toS06()
     expect(reduceFlow(s, { type: 'FINISH_MATCH', outcome: win, durationSec: 1 })).toBe(s)
+  })
+})
+
+describe('未完成の設定を、編集しない画面へ持ち込まない', () => {
+  it('S06 で、2P を途中（合計が 20 でない）のまま「もどる」: 2P は標準へ戻り、S05 から S06 へ進める', () => {
+    let s = toS06()
+    s = reduceFlow(s, { type: 'SET_P2', config: { ...s.data.p2, stats: stats(2, 2, 2, 2) } })
+    s = run(s, { type: 'BACK' })
+    expect(at(s)).toBe('S05')
+    expect(s.data.p2.stats).toEqual({ ...DEFAULT_STATS })
+    expect(at(run(s, { type: 'NEXT' }))).toBe('S06')
+  })
+
+  it('S03 の途中（1P の合計が 20 でない）で「もちかえる」: 1P は、直前の戦の値、なければ標準の値で S12 へ', () => {
+    let s = run(createSession(), { type: 'START' }, { type: 'NEXT' })
+    s = withP1(s, stats(2, 2, 2, 2))
+    expect(at(run(s, { type: 'SHARE' }))).toBe('S12')
+    expect(run(s, { type: 'SHARE' }).data.p1.stats).toEqual({ ...DEFAULT_STATS })
+    // 戦のあとなら、直前の戦の値
+    let t = run(createSession(), { type: 'START' }, { type: 'NEXT' })
+    t = withP1Raw(t)
+    t = run(
+      t,
+      { type: 'NEXT' },
+      { type: 'CONFIRM_STAGE', stage: presetStage('standard'), presetId: 'standard' },
+      { type: 'NEXT' },
+      { type: 'BEGIN_MATCH' },
+      { type: 'FINISH_MATCH', outcome: win, durationSec: 1 },
+      { type: 'REDESIGN' },
+    )
+    t = withP1(t, stats(2, 2, 2, 2))
+    t = run(t, { type: 'SHARE' })
+    expect(t.data.p1.stats).toEqual(stats(6, 4, 5, 5))
+  })
+
+  it('編集してよい画面（S02・S03・S04・S06・S09）の間では、途中の値を、そのまま持つ', () => {
+    let s = run(createSession(), { type: 'START' }, { type: 'NEXT' })
+    s = withP1(s, stats(2, 2, 2, 2))
+    s = run(s, { type: 'BACK' }) // S02
+    expect(s.data.p1.stats).toEqual(stats(2, 2, 2, 2))
+  })
+})
+
+describe('再戦の途中で、更新（再開）したとき', () => {
+  /** 第 1 戦のあと、再設計して、S10 を始めた状態を、S06 から再開したもの */
+  const resumed = (): Session => {
+    let s = toS06()
+    s = run(
+      s,
+      { type: 'BEGIN_MATCH' },
+      { type: 'FINISH_MATCH', outcome: win, durationSec: 1 },
+      { type: 'REDESIGN' },
+    )
+    s = withP1(s, stats(6, 4, 5, 5))
+    s = run(s, { type: 'BEGIN_MATCH' })
+    expect(at(s)).toBe('S10')
+    return { ...s, data: { ...s.data, screen: restoreScreen('S10') }, current: null }
+  }
+
+  it('S06 から始めると、S10（再戦）になる。終わると、S11（比較）へ。第 2 戦として記録される', () => {
+    let s = resumed()
+    expect(at(s)).toBe('S06')
+    s = run(s, { type: 'BEGIN_MATCH' })
+    expect(at(s)).toBe('S10')
+    s = run(s, { type: 'FINISH_MATCH', outcome: win, durationSec: 5 })
+    expect(at(s)).toBe('S11')
+    expect(s.data.matches.map((m) => m.matchNo)).toEqual([1, 2])
+  })
+
+  it('S06 の「もどる」は、S05 ではなく S09（設定を変えて作り直す）へ', () => {
+    expect(at(run(resumed(), { type: 'BACK' }))).toBe('S09')
+  })
+
+  it('第 1 戦の途中で再開したとき（戦の記録がない）は、これまでどおり S07', () => {
+    const s = toS06()
+    expect(at(run(s, { type: 'BEGIN_MATCH' }))).toBe('S07')
   })
 })
 

@@ -23,8 +23,17 @@ import { StatScreen } from './StatScreen.tsx'
  * 遷移の可否は reducer（session/flow.ts）が持つ。ここは、画面を選んで、操作を渡すだけ
  */
 export function AppShell({ repo }: { repo?: SessionRepository }) {
-  const { session, dispatch } = useSession(repo)
-  return <Screens session={session} dispatch={dispatch} />
+  const { session, dispatch: baseDispatch } = useSession(repo)
+  // リセットのたびに、画面の部品の状態（S04 のエディタなど）を、作り直す（前の参加者の作品を、次の参加者に見せない）
+  const [generation, setGeneration] = useState(0)
+  const dispatch = useCallback<Dispatch>(
+    (a) => {
+      if (a.type === 'RESET') setGeneration((g) => g + 1)
+      baseDispatch(a)
+    },
+    [baseDispatch],
+  )
+  return <Screens key={generation} session={session} dispatch={dispatch} />
 }
 
 type Dispatch = ReturnType<typeof useSession>['dispatch']

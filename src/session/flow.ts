@@ -14,6 +14,7 @@ import {
   type StageData,
 } from '../model/index.ts'
 import { validateStage } from '../stage/index.ts'
+import { DEFAULT_STATS } from '../fighter/index.ts'
 import { createSession, lastMatch, nextMatchNo, type Session } from './state.ts'
 
 export type FlowAction =
@@ -47,11 +48,27 @@ export type FlowAction =
   /** リセット（どの画面からでも。対戦中も中断）。全データを破棄して S01 へ */
   | { type: 'RESET' }
 
-const go = (s: Session, screen: ScreenId, patch: Partial<Session> = {}): Session => ({
-  ...s,
-  ...patch,
-  data: { ...(patch.data ?? s.data), screen },
-})
+/** 能力値を、編集してよい画面（途中の値を持てる）。それ以外へ出るときは、未完成の値を、確定した値へ戻す */
+const EDITING_SCREENS: readonly ScreenId[] = ['S02', 'S03', 'S04', 'S06', 'S09']
+
+/**
+ * 未完成の設定（合計が 20 でないなど）を、確定した値へ戻す: 直前の戦の同じ側の能力値、なければ標準（5/5/5/5）。
+ * 編集の途中のまま、編集しない画面へ出ても、未完成の値が、そこへ持ち込まれない（再開で、保存が捨てられない。
+ * 持ち帰り用QRにも、検証を通る値だけが入る。user-flow.md §6.1、ui-design.md §7.11.1）
+ */
+function settle(s: Session): Session {
+  const last = s.data.matches.at(-1)
+  const fix = (cfg: CharacterConfig, prev?: CharacterConfig): CharacterConfig =>
+    validateConfig(cfg, 'match').ok ? cfg : { ...cfg, stats: { ...(prev?.stats ?? DEFAULT_STATS) } }
+  const p1 = fix(s.data.p1, last?.p1Config)
+  const p2 = fix(s.data.p2, last?.p2Config)
+  return p1 === s.data.p1 && p2 === s.data.p2 ? s : { ...s, data: { ...s.data, p1, p2 } }
+}
+
+const go = (s: Session, screen: ScreenId, patch: Partial<Session> = {}): Session => {
+  const next = { ...s, ...patch, data: { ...(patch.data ?? s.data), screen } }
+  return EDITING_SCREENS.includes(screen) ? next : settle(next)
+}
 
 /** 能力値が、1 つ以上変わっているか */
 export function statsChanged(a: CharacterConfig, b: CharacterConfig): boolean {
@@ -160,7 +177,8 @@ export function reduceFlow(s: Session, a: FlowAction): Session {
       return screen === 'S05' ? go(s, 'S04') : s
 
     case 'BEGIN_MATCH':
-      if (screen === 'S06') return begin(s, 'S07')
+      // S06 に、戦の記録があるのは、再戦の途中で更新（再開）したとき。再戦（S10）として、続ける
+      if (screen === 'S06') return begin(s, s.data.matches.length > 0 ? 'S10' : 'S07')
       if (screen === 'S09') return canRematch(s) ? begin(s, 'S10') : s
       return s
 
@@ -200,7 +218,8 @@ export function reduceFlow(s: Session, a: FlowAction): Session {
         case 'S04':
           return go(s, 'S03')
         case 'S06':
-          return go(s, 'S05')
+          // 再戦の途中で、再開したときは、S05 ではなく、S09（設定を変えて作り直す）へ
+          return go(s, s.data.matches.length > 0 ? 'S09' : 'S05')
         case 'S09': {
           // 変更を破棄して、結果を見直す。第 1 戦の直後は S08、再戦のあとは S11
           const back = discardRedesign(s)

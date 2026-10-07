@@ -24,6 +24,8 @@ export type SessionData = {
   stagePresetId: string | null // 選んだプリセット。エディタで直した後も、元のIDを持つ
   matches: MatchRecord[] // matchNo の昇順。最大 MAX_MATCHES
   screen: ScreenId
+  /** S05 から S03 へ戻ったとき true（S03 の「つぎへ」は S05 へ戻る）。更新（再開）でも保つ。false のときは、書かない */
+  returnToPractice?: boolean
 }
 
 /** localStorage に1つのキーで保存する形 */

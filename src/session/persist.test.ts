@@ -128,6 +128,39 @@ describe('保存と復元', () => {
   })
 })
 
+describe('S05 から S03 へ戻っている途中の印（returnToPractice）', () => {
+  it('更新（再開）でも保たれる。S03 の「つぎへ」は、S05 へ戻る', () => {
+    const repo = createRepository(new MemoryStorage())
+    let s = run(
+      createSession(),
+      { type: 'START' },
+      { type: 'NEXT' },
+      { type: 'NEXT' },
+      { type: 'CONFIRM_STAGE', stage: presetStage('standard'), presetId: 'standard' },
+      { type: 'FIX_STATS' },
+    )
+    expect(s.data.screen).toBe('S03')
+    expect(s.returnToPractice).toBe(true)
+    repo.save(toSnapshot(s))
+    const restored = boot(repo, '', createSession).session
+    expect(restored.returnToPractice).toBe(true)
+    expect(restored.data).toEqual(s.data) // 印は、data の中に入らない
+    s = run(restored, { type: 'NEXT' })
+    expect(s.data.screen).toBe('S05')
+  })
+
+  it('印がないとき（通常）は、保存に書かない。S03 以外の画面の印は、読み捨てる', () => {
+    const storage = new MemoryStorage()
+    const repo = createRepository(storage)
+    repo.save(toSnapshot(played()))
+    expect(storage.getItem(SESSION_STORAGE_KEY)).not.toContain('returnToPractice')
+    const snap = JSON.parse(storage.getItem(SESSION_STORAGE_KEY)!)
+    snap.data.returnToPractice = true
+    storage.setItem(SESSION_STORAGE_KEY, JSON.stringify(snap))
+    expect(boot(repo, '', createSession).session.returnToPractice).toBe(false)
+  })
+})
+
 describe('壊れた保存は、全体を捨てて S01 から', () => {
   const corrupt: Record<string, (d: Record<string, unknown>) => void> = {
     '見た目の ID が未知': (d) => {
