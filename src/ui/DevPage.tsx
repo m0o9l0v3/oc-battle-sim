@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { DEFAULT_STATS, createDefaultConfig } from '../fighter/index.ts'
 import type { CharacterConfig, StageData, Stats } from '../model/index.ts'
-import { DEFAULT_PRESET_ID, createEditor, type EditorState } from '../stage/index.ts'
+import { DEFAULT_PRESET_ID, createEditor, presetStage, type EditorState } from '../stage/index.ts'
 import { DEMO_STAGE } from './demoStage.ts'
+import { PracticeScreen } from './PracticeScreen.tsx'
 import { StageEditorScreen } from './StageEditorScreen.tsx'
 import { StageScreen } from './StageScreen.tsx'
 import { StageSelectScreen } from './StageSelectScreen.tsx'
@@ -41,6 +42,56 @@ function AppearanceDemo() {
       <AppearanceScreen config={config} onChange={setConfig} onNext={setDone} />
       {done && <p role="status">つぎの がめんへ すすむよ（{JSON.stringify(done)}）</p>}
     </>
+  )
+}
+
+/** S03・S04 から S05 へ、S05 から S03・S04 へ戻る流れの確認（画面の遷移の本体は #35） */
+function PracticeDemo() {
+  const [config, setConfig] = useState<CharacterConfig>(() => createDefaultConfig('p1'))
+  const [stage, setStage] = useState<StageData>(() => presetStage(DEFAULT_PRESET_ID))
+  const [editor, setEditor] = useState<EditorState>(() => createEditor())
+  const [view, setView] = useState<'practice' | 'stats' | 'stage' | 'battle'>('practice')
+  if (view === 'stats') {
+    return (
+      <StatScreen
+        stats={config.stats}
+        onChange={(stats) => setConfig({ ...config, stats })}
+        onNext={() => setView('practice')}
+        onBack={() => setView('practice')}
+      />
+    )
+  }
+  if (view === 'stage') {
+    return (
+      <StageEditorScreen
+        editor={editor}
+        onChange={setEditor}
+        onNext={(s) => {
+          setStage(s)
+          setView('practice')
+        }}
+        onBack={() => setView('practice')}
+      />
+    )
+  }
+  if (view === 'battle') {
+    return (
+      <>
+        <p role="status">つぎは 「たいせんの じゅんび」（S06。#35 で つなぐよ）</p>
+        <button type="button" className="button button--sub" onClick={() => setView('practice')}>
+          もういちど ためす
+        </button>
+      </>
+    )
+  }
+  return (
+    <PracticeScreen
+      config={config}
+      stage={stage}
+      onFixStats={() => setView('stats')}
+      onFixStage={() => setView('stage')}
+      onNext={() => setView('battle')}
+    />
   )
 }
 
@@ -83,6 +134,7 @@ export type DevSection = { id: string; title: string; render: () => ReactNode }
  * 画面の遷移（S01〜S12）は #35 で作る。ここは、部品の動作確認だけに使う
  */
 export const DEV_SECTIONS: DevSection[] = [
+  { id: 'practice', title: '試しに うごかす（S05。#34）', render: () => <PracticeDemo /> },
   { id: 'stage-editor', title: 'ステージを つくる（S04。#33）', render: () => <StageEditorDemo /> },
   { id: 'stage-select', title: 'ステージを えらぶ（S04。#32）', render: () => <StageSelectDemo /> },
   { id: 'appearance', title: '見た目を選ぶ（S02。#30）', render: () => <AppearanceDemo /> },

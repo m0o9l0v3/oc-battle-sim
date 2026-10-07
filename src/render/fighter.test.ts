@@ -115,6 +115,15 @@ class FakeCtx {
   rotate(rad: number) {
     this.matrix = mul(this.matrix, rotateM(rad))
   }
+  font = ''
+  textAlign = ''
+  textBaseline = ''
+  texts: { text: string; fill: string }[] = []
+  fillText(text: string) {
+    this.texts.push({ text, fill: this.fillStyle })
+  }
+  fillRect() {}
+  strokeRect() {}
   beginPath() {}
   closePath() {}
   moveTo(x: number, y: number) {
@@ -581,6 +590,28 @@ describe('攻撃の軌跡', () => {
     const xs = ctx.trails[0]!.points.map(([x]) => x)
     expect(Math.max(...xs)).toBeCloseTo(cam.offsetX + box.x1 * cam.scale, 3)
     expect(Math.min(...xs)).toBeLessThan(cam.offsetX + box.x0 * cam.scale)
+  })
+})
+
+describe('1P・2P の目印', () => {
+  const mctx = createMatchContext(DEMO_STAGE, [DEFAULT_STATS, DEFAULT_STATS])
+  const cam = fitCamera(1920, 1080)
+  it('頭の上に「1P」「2P」の文字が出る（色は 1P が青、2P が橙。見た目が同じでも、見分けられる）', () => {
+    const same = LOOKS[0]!
+    const r = createFighterRenderer({ looks: [same, same] })
+    const s = createMatchState(mctx)
+    const ctx = new FakeCtx()
+    r.draw({ ctx: asCtx(ctx), camera: cam, width: 1920, height: 1080 }, s, s, 1)
+    expect(ctx.texts.map((t) => t.text)).toEqual(['1P', '2P'])
+    expect(ctx.texts.every((t) => t.fill === '#ffffff')).toBe(true)
+  })
+
+  it('tags: false で、描かない', () => {
+    const r = createFighterRenderer({ looks: [LOOKS[0]!, LOOKS[1]!], tags: false })
+    const s = createMatchState(mctx)
+    const ctx = new FakeCtx()
+    r.draw({ ctx: asCtx(ctx), camera: cam, width: 1920, height: 1080 }, s, s, 1)
+    expect(ctx.texts).toHaveLength(0)
   })
 })
 
