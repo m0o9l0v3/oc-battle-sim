@@ -6,6 +6,7 @@ import {
   clearBlocks,
   confirmStage,
   createEditor,
+  editorFromStage,
   editorValidation,
   HISTORY_MAX,
   resetToPreset,
@@ -322,6 +323,24 @@ describe('もどす・ぜんぶ けす・プリセット', () => {
     expect(blocks(undo(s))).toBe(0)
     // 変更がなければ、何も起きない
     expect(resetToPreset(createEditor())).toEqual(createEditor())
+  })
+})
+
+describe('確定したステージから、編集を始める', () => {
+  it('プリセットのままなら、変更なし。直してあれば、変更あり。履歴は空。複製（元を変えない）', () => {
+    const preset = findPreset('wide')!.stage
+    const same = editorFromStage(preset, 'wide')
+    expect(same.dirty).toBe(false)
+    expect(same.selectedPresetId).toBe('wide')
+    expect(same.history).toHaveLength(0)
+    expect(same.stage).not.toBe(preset)
+    const edited = click(same, 2, 5)
+    const again = editorFromStage(edited.stage, 'wide')
+    expect(again.dirty).toBe(true)
+    expect(has(again, 2, 5)).toBe(true)
+    // プリセットの ID がない（一から作った）ステージ
+    expect(editorFromStage(edited.stage, null).selectedPresetId).toBeNull()
+    expect(editorFromStage(edited.stage, null).dirty).toBe(true)
   })
 })
 

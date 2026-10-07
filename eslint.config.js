@@ -19,7 +19,7 @@ export default tseslint.config(
   // 依存方向の規則（docs/08-architecture/frontend.md §4.3 D1〜D3）
   {
     // core 層: ブラウザ・時計・乱数・通信に触れない
-    files: ['src/{physics,combat,fighter,stage,battle,report,cpu,share,model}/**/*.ts'],
+    files: ['src/{physics,combat,fighter,stage,battle,report,cpu,share,session,model}/**/*.ts'],
     ignores: ['**/*.test.ts'],
     rules: {
       'no-restricted-imports': [

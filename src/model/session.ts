@@ -11,13 +11,21 @@ export const MAX_MATCHES = 20
 
 export const SESSION_STORAGE_KEY = 'ocbs.session'
 
+/**
+ * 保存する戦の記録。MatchResult のうち、指標（p1・p2）は、対戦指標の記録（#37）ができるまで、省略できる。
+ * 設定・ステージ・勝敗は、すべての戦に必ずある（第1戦の設定と結果を、第2戦のあとも参照できる）
+ */
+export type MatchRecord = Omit<MatchResult, 'p1' | 'p2'> & Partial<Pick<MatchResult, 'p1' | 'p2'>>
+
 export type SessionData = {
   p1: CharacterConfig
   p2: CharacterConfig
   stage: StageData
   stagePresetId: string | null // 選んだプリセット。エディタで直した後も、元のIDを持つ
-  matches: MatchResult[] // matchNo の昇順。最大 MAX_MATCHES
+  matches: MatchRecord[] // matchNo の昇順。最大 MAX_MATCHES
   screen: ScreenId
+  /** S05 から S03 へ戻ったとき true（S03 の「つぎへ」は S05 へ戻る）。更新（再開）でも保つ。false のときは、書かない */
+  returnToPractice?: boolean
 }
 
 /** localStorage に1つのキーで保存する形 */
