@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { messages } from '../assets/index.ts'
+import { BATTLE_COLORS, messages } from '../assets/index.ts'
 import {
   clearBlocks,
   createEditor,
@@ -41,9 +41,13 @@ describe('S04 エディタの表示', () => {
   it('選んでいる道具が、色だけでなく ✓ で分かる。初期の道具は「ブロック」', () => {
     const markup = html(createEditor())
     expect((markup.match(/data-checked="true"[^>]*>[^]*?✓ /g) ?? []).length).toBeGreaterThan(0)
-    expect(markup).toMatch(/class="tool" data-checked="true"[^]*?✓ [^]*?ブロック/)
+    expect(markup).toMatch(
+      /class="choice choice--compact" data-checked="true"[^]*?choice__check[^]*?ブロック/,
+    )
     const eraser = html(setTool(createEditor(), 'eraser'))
-    expect(eraser).toMatch(/class="tool" data-checked="true"[^]*?✓ [^]*?けしごむ/)
+    expect(eraser).toMatch(
+      /class="choice choice--compact" data-checked="true"[^]*?choice__check[^]*?けしごむ/,
+    )
   })
 
   it('「ひとつ もどす」は、戻れるときだけ押せる。変更がなければ「プリセットから やりなおす」は押せない', () => {
@@ -74,7 +78,7 @@ describe('S04 エディタの表示', () => {
     const markup = html(s)
     expect(markup).toContain(messages.stageRules.SPAWN_NO_GROUND)
     expect(markup).toContain('✕')
-    expect(markup).toContain('#e53935')
+    expect(markup).toContain(BATTLE_COLORS.violation)
   })
 
   it('スタート位置に、色と「1P」「2P」の文字がある（色だけに頼らない）', () => {

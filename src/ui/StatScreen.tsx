@@ -3,6 +3,7 @@ import { messages } from '../assets/index.ts'
 import { DEFAULT_STATS, nextBlock } from '../fighter/index.ts'
 import type { Stats } from '../model/index.ts'
 import { StatEditor } from './StatEditor.tsx'
+import { Button } from './components/index.ts'
 
 const m = messages.stat
 
@@ -31,19 +32,15 @@ export function StatScreen({ stats, onChange, onNext, onBack }: StatScreenProps)
     <div className="stat-screen">
       <StatEditor stats={stats} onChange={onChange} heading={m.title} />
       <div className="stat-screen__reset">
-        <button
-          type="button"
-          className="button button--sub"
-          onClick={() => onChange({ ...DEFAULT_STATS })}
-        >
+        <Button variant="sub" onClick={() => onChange({ ...DEFAULT_STATS })}>
           {m.reset}
-        </button>
+        </Button>
       </div>
       <footer className="stat-screen__footer">
         {onBack ? (
-          <button type="button" className="button button--sub" onClick={onBack}>
+          <Button variant="sub" onClick={onBack}>
             {m.back}
-          </button>
+          </Button>
         ) : (
           <span />
         )}

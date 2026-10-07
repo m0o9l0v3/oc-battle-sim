@@ -11,6 +11,9 @@ import {
   FIXED_COLORS,
   OUTLINE_WIDTH,
   paintColor,
+  PLAYER_COLORS,
+  BATTLE_COLORS,
+  EFFECT_COLORS,
   type BodyDef,
   type FighterLook,
   type Part,
@@ -272,30 +275,31 @@ function drawAttackTrail(
   ctx.quadraticCurveTo(px(far + bulge), py(box.y0), px(near), py(box.y0))
   ctx.quadraticCurveTo(px(near + (far - near) * 0.45), py(mid), px(near), py(box.y1))
   ctx.closePath()
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'
+  ctx.fillStyle = EFFECT_COLORS.trail
   ctx.fill()
   ctx.restore()
 }
-
-const TAG_COLORS = ['#1d78c8', '#e8690b'] as const // 1P は青系、2P は橙系（ui-design.md §4）
 
 /**
  * 頭の上の「1P」「2P」の目印（character-design.md §5.4、ui-design.md §8）。色だけに頼らず、文字を付ける。
  * 見た目（体型・色）が同じファイターどうしでも、どちらが 1P か分かる
  */
-function drawTag({ ctx, camera }: DrawContext, label: string, color: string, x: number, y: number) {
+function drawTag({ ctx, camera }: DrawContext, slot: 'p1' | 'p2', x: number, y: number) {
+  // 1P は青系（暗め）、2P は橙系（明るめ）。ビジュアルテーマ（assets/theme.ts）
+  const { bg, text } = PLAYER_COLORS[slot]
+  const label = slot === 'p1' ? '1P' : '2P'
   const px = camera.offsetX + x * camera.scale
   // 頭の上端（足元から 0.8 セル上）より、少し上
   const py = camera.offsetY + (y - BODY_HEIGHT - 0.18) * camera.scale
   const h = camera.scale * 0.22
   const w = h * 1.9
   ctx.save()
-  ctx.fillStyle = color
-  ctx.strokeStyle = '#ffffff'
+  ctx.fillStyle = bg
+  ctx.strokeStyle = BATTLE_COLORS.background
   ctx.lineWidth = Math.max(1, h * 0.08)
   ctx.fillRect(px - w / 2, py - h / 2, w, h)
   ctx.strokeRect(px - w / 2, py - h / 2, w, h)
-  ctx.fillStyle = '#ffffff'
+  ctx.fillStyle = text
   ctx.font = `700 ${Math.round(h * 0.72)}px sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
@@ -378,8 +382,7 @@ export function createFighterRenderer(opts: FighterRendererOptions): FighterRend
           // 攻撃中は、攻撃を始めたときの向きを保つ（判定・軌跡と同じ。途中で逆を押しても、拳は判定から離れない）
           curr.fighters[i].combat.attack?.facing ?? curr.fighters[i].facing,
         )
-        if (tags && !curr.fighters[i].combat.down)
-          drawTag(dc, i === 0 ? '1P' : '2P', TAG_COLORS[i], x, y)
+        if (tags && !curr.fighters[i].combat.down) drawTag(dc, i === 0 ? 'p1' : 'p2', x, y)
         const box = trail ? hitbox(curr.fighters[i], combat) : null
         if (box) drawAttackTrail(dc, box, curr.fighters[i].combat.attack?.facing ?? 1)
       }

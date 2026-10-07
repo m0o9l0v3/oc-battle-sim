@@ -10,6 +10,7 @@ import {
   type StatBlockReason,
 } from '../fighter/index.ts'
 import type { Stats } from '../model/index.ts'
+import { RemainingPoints, Stepper, Tooltip } from './components/index.ts'
 import { statPercent } from './statView.ts'
 
 const m = messages.stat
@@ -40,14 +41,10 @@ export function StatEditor({ stats, onChange, heading }: StatEditorProps) {
           {heading ?? ''}
         </h2>
         {/* 残りポイント: 常に表示。変わったことが、読み上げでも伝わる */}
-        <p
-          className="stat-editor__remaining"
-          role="status"
-          aria-live="polite"
-          data-remaining={remaining}
-        >
-          {remaining === 0 ? m.remainingDone : m.remaining(remaining)}
-        </p>
+        <RemainingPoints
+          remaining={remaining}
+          text={remaining === 0 ? m.remainingDone : m.remaining(remaining)}
+        />
       </header>
 
       <ul className="stat-editor__list">
@@ -62,37 +59,24 @@ export function StatEditor({ stats, onChange, heading }: StatEditorProps) {
           const hint = minus ?? (plus === 'AT_MAX' ? plus : null)
           return (
             <li key={key} className="stat-row" data-stat={key}>
-              <div className="stat-row__name" title={text.meaning}>
-                <span className="stat-row__label">{text.label}</span>
+              <div className="stat-row__name">
+                <Tooltip text={text.meaning}>
+                  <span className="stat-row__label">{text.label}</span>
+                </Tooltip>
                 <span className="stat-row__meaning">{text.meaning}</span>
               </div>
-              <div className="stat-row__stepper" role="group" aria-label={text.label}>
-                <button
-                  type="button"
-                  className="stepper-button"
-                  aria-label={m.decrease(text.label)}
-                  aria-describedby={hint ? hintId : undefined}
-                  disabled={minus !== null}
-                  onClick={() => onChange(changeStat(stats, key, -1))}
-                >
-                  −
-                </button>
-                <output className="stat-row__value" aria-label={`${text.label} ${value}`}>
-                  {value}
-                </output>
-                <button
-                  type="button"
-                  className="stepper-button"
-                  aria-label={m.increase(text.label)}
-                  aria-describedby={
-                    plus === 'NO_POINTS' ? `${id}-nopoints` : hint ? hintId : undefined
-                  }
-                  disabled={plus !== null}
-                  onClick={() => onChange(changeStat(stats, key, 1))}
-                >
-                  ＋
-                </button>
-              </div>
+              <Stepper
+                label={text.label}
+                value={value}
+                decreaseLabel={m.decrease(text.label)}
+                increaseLabel={m.increase(text.label)}
+                canDecrease={minus === null}
+                canIncrease={plus === null}
+                onDecrease={() => onChange(changeStat(stats, key, -1))}
+                onIncrease={() => onChange(changeStat(stats, key, 1))}
+                decreaseHintId={hint ? hintId : undefined}
+                increaseHintId={plus === 'NO_POINTS' ? `${id}-nopoints` : hint ? hintId : undefined}
+              />
               <p className="stat-row__effect" title={m.compareNote}>
                 {text.effect} {statPercent(key, value)}%
               </p>

@@ -142,7 +142,9 @@ describe('操作できる大きさ・読み上げ', () => {
     expect(html(S(5, 5, 5, 4))).toMatch(/role="status"[^>]*aria-live="polite"/)
   })
 
-  it('能力値の意味は、ツールチップ（title）でも見られる', () => {
-    expect(html(S(5, 5, 5, 5))).toContain(`title="${m.stats.jumpPower.meaning}"`)
+  it('能力値の意味は、ツールチップ（role=tooltip。キーボードでも出る）でも見られる', () => {
+    const markup = html(S(5, 5, 5, 5))
+    expect(markup).toMatch(new RegExp(`role="tooltip"[^>]*>${m.stats.jumpPower.meaning}<`))
+    expect(markup).toMatch(/class="tooltip" tabindex="0" aria-describedby=/)
   })
 })

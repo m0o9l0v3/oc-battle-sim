@@ -1,3 +1,4 @@
+import { BATTLE_COLORS, PLAYER_COLORS } from '../assets/index.ts'
 import type { StageData } from '../model/index.ts'
 import { DEFAULT_VIEW, type Rect } from './camera.ts'
 import type { DrawContext, Renderer } from './types.ts'
@@ -11,14 +12,10 @@ export type StageColors = {
   spawn: [string, string]
 }
 
-// 色は暫定。ビジュアルテーマ（#36）で assets に移す。
+// 色は、ビジュアルテーマ（assets/theme.ts）。1P は青系、2P は橙系
 export const DEFAULT_STAGE_COLORS: StageColors = {
-  background: '#0f1420',
-  outOfBounds: '#1a2030',
-  stage: '#262f45',
-  block: '#8fa3c8',
-  grid: 'rgba(255,255,255,0.06)',
-  spawn: ['#4fc3f7', '#ff7a59'], // 1P は青系、2P は橙系（ui-design.md §4）
+  ...BATTLE_COLORS,
+  spawn: [PLAYER_COLORS.p1.bg, PLAYER_COLORS.p2.bg],
 }
 
 export function drawStage(

@@ -9,7 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type SetStateAction,
 } from 'react'
-import { messages, summarizeViolations } from '../assets/index.ts'
+import { BATTLE_COLORS, messages, PLAYER_COLORS, summarizeViolations } from '../assets/index.ts'
 import { STAGE_COLS, STAGE_ROWS, type StageData } from '../model/index.ts'
 import {
   canUndo,
@@ -33,6 +33,7 @@ import {
   type StageViolation,
 } from '../stage/index.ts'
 import { StageThumbnail } from './StageThumbnail.tsx'
+import { Button, ChoiceCard } from './components/index.ts'
 
 const m = messages.stageEditor
 const TOOLS: EditorTool[] = ['block', 'eraser', 'spawn1', 'spawn2']
@@ -174,21 +175,16 @@ export function StageEditorScreen({ editor, onChange, onNext, onBack }: StageEdi
           {STAGE_PRESETS.map((p) => {
             const checked = p.id === editor.selectedPresetId
             return (
-              <label key={p.id} className="stage-card stage-card--small" data-checked={checked}>
-                <input
-                  type="radio"
-                  name={`${id}-preset`}
-                  checked={checked}
-                  onChange={() => onChange((s) => selectPreset(s, p.id))}
-                />
-                {checked && (
-                  <span className="stage-card__check" aria-hidden="true">
-                    ✓
-                  </span>
-                )}
+              <ChoiceCard
+                key={p.id}
+                name={`${id}-preset`}
+                checked={checked}
+                onChange={() => onChange((s) => selectPreset(s, p.id))}
+                className="stage-card stage-card--small"
+              >
                 <StageThumbnail stage={p.stage} width={120} />
                 <span className="stage-card__name">{p.name}</span>
-              </label>
+              </ChoiceCard>
             )
           })}
         </fieldset>
@@ -207,14 +203,14 @@ export function StageEditorScreen({ editor, onChange, onNext, onBack }: StageEdi
               onPointerCancel={onUp}
               onPointerLeave={() => setHover(null)}
             >
-              <rect width={STAGE_COLS} height={STAGE_ROWS} fill="#262f45" />
+              <rect width={STAGE_COLS} height={STAGE_ROWS} fill={BATTLE_COLORS.stage} />
               {/* 上の 4 行: 置けない（薄い色） */}
               <rect
                 width={STAGE_COLS}
                 height={DEFAULT_STAGE_RULES.topEmptyRows}
-                fill="rgba(255,255,255,0.07)"
+                fill={BATTLE_COLORS.tint}
               />
-              <text x={0.3} y={0.95} fontSize={0.8} fill="rgba(255,255,255,0.55)">
+              <text x={0.3} y={0.95} fontSize={0.8} fill={BATTLE_COLORS.label}>
                 {m.topRows}
               </text>
               {editor.stage.cells.map((line, row) =>
@@ -226,8 +222,8 @@ export function StageEditorScreen({ editor, onChange, onNext, onBack }: StageEdi
                       y={row}
                       width={1}
                       height={1}
-                      fill="#8fa3c8"
-                      stroke="#6b7fa6"
+                      fill={BATTLE_COLORS.block}
+                      stroke={BATTLE_COLORS.blockEdge}
                       strokeWidth={0.06}
                     />
                   ) : null,
@@ -241,7 +237,7 @@ export function StageEditorScreen({ editor, onChange, onNext, onBack }: StageEdi
                   y1={0}
                   x2={c}
                   y2={STAGE_ROWS}
-                  stroke="rgba(255,255,255,0.07)"
+                  stroke={BATTLE_COLORS.tint}
                   strokeWidth={0.03}
                 />
               ))}
@@ -252,7 +248,7 @@ export function StageEditorScreen({ editor, onChange, onNext, onBack }: StageEdi
                   y1={r}
                   x2={STAGE_COLS}
                   y2={r}
-                  stroke="rgba(255,255,255,0.07)"
+                  stroke={BATTLE_COLORS.tint}
                   strokeWidth={0.03}
                 />
               ))}
@@ -264,9 +260,9 @@ export function StageEditorScreen({ editor, onChange, onNext, onBack }: StageEdi
                   width={1}
                   height={1}
                   fill={
-                    editor.tool === 'block' ? 'rgba(143,163,200,0.45)' : 'rgba(255,255,255,0.18)'
+                    editor.tool === 'block' ? BATTLE_COLORS.hoverBlock : BATTLE_COLORS.tintStrong
                   }
-                  stroke="#fff"
+                  stroke={BATTLE_COLORS.highlight}
                   strokeWidth={0.1}
                 />
               )}
@@ -277,8 +273,8 @@ export function StageEditorScreen({ editor, onChange, onNext, onBack }: StageEdi
                     cx={c.col + 0.5}
                     cy={c.row + 0.5}
                     r={0.45}
-                    fill={i === 0 ? '#1d78c8' : '#e8690b'}
-                    stroke="#fff"
+                    fill={i === 0 ? PLAYER_COLORS.p1.bg : PLAYER_COLORS.p2.bg}
+                    stroke={BATTLE_COLORS.highlight}
                     strokeWidth={0.08}
                   />
                   <text
@@ -288,7 +284,7 @@ export function StageEditorScreen({ editor, onChange, onNext, onBack }: StageEdi
                     fontWeight={700}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fill="#fff"
+                    fill={i === 0 ? PLAYER_COLORS.p1.text : PLAYER_COLORS.p2.text}
                   >
                     {i === 0 ? m.marker1 : m.marker2}
                   </text>
@@ -310,7 +306,7 @@ export function StageEditorScreen({ editor, onChange, onNext, onBack }: StageEdi
                       width={0.9}
                       height={0.9}
                       fill="none"
-                      stroke="#e53935"
+                      stroke={BATTLE_COLORS.violation}
                       strokeWidth={0.12}
                     />
                     <text
@@ -320,7 +316,7 @@ export function StageEditorScreen({ editor, onChange, onNext, onBack }: StageEdi
                       fontWeight={700}
                       textAnchor="middle"
                       dominantBaseline="central"
-                      fill="#ff6659"
+                      fill={BATTLE_COLORS.violation}
                     >
                       ✕
                     </text>
@@ -337,48 +333,36 @@ export function StageEditorScreen({ editor, onChange, onNext, onBack }: StageEdi
           <div className="stage-editor__tools" role="radiogroup" aria-label={m.tools}>
             <span className="stage-editor__tools-label">{m.tools}:</span>
             {TOOLS.map((t) => (
-              <label
+              <ChoiceCard
                 key={t}
-                className="tool"
-                data-checked={editor.tool === t}
-                data-flash={flashPart(t)}
+                name={`${id}-tool`}
+                checked={editor.tool === t}
+                onChange={() => onChange((s) => setTool(s, t))}
+                compact
               >
-                <input
-                  type="radio"
-                  name={`${id}-tool`}
-                  checked={editor.tool === t}
-                  onChange={() => onChange((s) => setTool(s, t))}
-                />
-                {editor.tool === t && <span aria-hidden="true">✓ </span>}
-                {m.toolLabels[t]}
-              </label>
+                <span data-flash={flashPart(t)}>{m.toolLabels[t]}</span>
+              </ChoiceCard>
             ))}
           </div>
 
           <div className="stage-editor__actions">
-            <button
-              type="button"
-              className="button button--sub"
+            <Button
+              variant="sub"
               disabled={!canUndo(editor)}
               onClick={() => onChange((s) => undo(s))}
             >
               {m.undo}
-            </button>
-            <button
-              type="button"
-              className="button button--sub"
-              onClick={() => onChange((s) => clearBlocks(s))}
-            >
+            </Button>
+            <Button variant="sub" onClick={() => onChange((s) => clearBlocks(s))}>
               {m.clear}
-            </button>
-            <button
-              type="button"
-              className="button button--sub"
+            </Button>
+            <Button
+              variant="sub"
               disabled={!editor.selectedPresetId || !editor.dirty}
               onClick={() => onChange((s) => resetToPreset(s))}
             >
               {m.resetPreset}
-            </button>
+            </Button>
             <button
               type="button"
               className="button button--sub"
@@ -430,22 +414,17 @@ export function StageEditorScreen({ editor, onChange, onNext, onBack }: StageEdi
 
       <footer className="stage-editor__footer">
         {onBack ? (
-          <button type="button" className="button button--sub" onClick={onBack}>
+          <Button variant="sub" onClick={onBack}>
             {m.back}
-          </button>
+          </Button>
         ) : (
           <span />
         )}
         <div className="stage-editor__next">
           {!validation.ok && <p className="stage-editor__next-hint">{m.nextBlocked}</p>}
-          <button
-            type="button"
-            className="button button--main"
-            disabled={!validation.ok}
-            onClick={next}
-          >
+          <Button variant="main" disabled={!validation.ok} onClick={next}>
             {m.next}
-          </button>
+          </Button>
         </div>
       </footer>
     </div>

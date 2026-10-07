@@ -6,6 +6,7 @@ import type { CharacterConfig, StageData } from '../model/index.ts'
 import { keysLabel } from './keyLabels.ts'
 import { PracticeCanvas, type PracticeHud } from './PracticeCanvas.tsx'
 import { statPercent } from './statView.ts'
+import { Button } from './components/index.ts'
 
 const m = messages.practice
 const sm = messages.stat
@@ -93,31 +94,27 @@ export function PracticeScreen({
               <br />
               {hud.lastHit ? m.lastHit(hud.lastHit.damage, hud.lastHit.launch) : m.noHit}
             </p>
-            <button
-              type="button"
-              className="button button--sub"
-              onClick={() => setResetKey((k) => k + 1)}
-            >
+            <Button variant="sub" onClick={() => setResetKey((k) => k + 1)}>
               {m.resetDummy}
-            </button>
+            </Button>
           </section>
         </aside>
       </div>
 
       <footer className="practice__footer">
         <div className="practice__fix">
-          <button type="button" className="button button--sub" onClick={onFixStats}>
+          <Button variant="sub" onClick={onFixStats}>
             {m.fixStats}
-          </button>
-          <button type="button" className="button button--sub" onClick={onFixStage}>
+          </Button>
+          <Button variant="sub" onClick={onFixStage}>
             {m.fixStage}
-          </button>
+          </Button>
         </div>
         <div className="practice__next">
           <p className="practice__note">{m.skipNote}</p>
-          <button type="button" className="button button--main" onClick={onNext}>
+          <Button variant="main" onClick={onNext}>
             {m.toBattle}
-          </button>
+          </Button>
         </div>
       </footer>
     </div>
