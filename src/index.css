@@ -1177,3 +1177,64 @@ main.flow {
   align-items: stretch;
   gap: 0.35rem;
 }
+
+/* S12 の持ち帰り QR、持ち帰りの設定の入口（take-home-share.md） */
+.end__body {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2rem;
+  align-items: start;
+}
+
+.end__side {
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+}
+
+.end__qr {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: start;
+  width: 360px;
+}
+
+.qr {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.end__url {
+  display: grid;
+  max-width: 360px;
+  gap: 0.2rem;
+  width: 100%;
+  font-size: var(--fs-note);
+}
+
+.end__url input {
+  font: inherit;
+  font-size: var(--fs-note);
+  width: 100%;
+  padding: 0.3rem;
+}
+
+.takehome {
+  display: grid;
+  gap: 0.8rem;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.takehome__actions {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+}
+
+@media (max-width: 767px) {
+  .end__body {
+    grid-template-columns: 1fr;
+  }
+}

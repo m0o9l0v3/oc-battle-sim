@@ -33,13 +33,15 @@ export function useSession(repo?: SessionRepository) {
   // 保存先は、最初に決めたものを使い続ける（再描画で、作り直さない）
   const [repository] = useState<SessionRepository>(() => repo ?? browserRepository())
   const repoRef = useRef(repository)
+  // 起動の結果（保存の復元、持ち帰りのデータの読み込み）は、最初の 1 回だけ決める
+  const [booted] = useState(() => {
+    const search = typeof window !== 'undefined' ? window.location.search : ''
+    const hash = typeof window !== 'undefined' ? window.location.hash : ''
+    return boot(repository, search, createSession, hash)
+  })
   const [session, dispatch] = useReducer(
     (s: Session, a: FlowAction) => reduceFlow(s, a),
-    undefined,
-    () => {
-      const search = typeof window !== 'undefined' ? window.location.search : ''
-      return boot(repository, search, createSession).session
-    },
+    booted.session,
   )
 
   // `?reset` は、破棄したら、すぐ URL から取り除く（残すと、次の更新が、またリセットになる）
@@ -77,5 +79,5 @@ export function useSession(repo?: SessionRepository) {
     return () => clearTimeout(t)
   }, [session])
 
-  return { session, dispatch }
+  return { session, dispatch, takeHome: booted.takeHome }
 }

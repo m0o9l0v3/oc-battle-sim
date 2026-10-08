@@ -56,6 +56,9 @@ export const BATTLE_COLORS = {
   grid: 'rgba(255,255,255,0.06)',
 } as const
 
+/** QR コードの色。画面のテーマ（暗い表示）に関わらず、白地に黒（読み取りのため。take-home-share.md §7） */
+export const QR_COLORS = { dark: '#000000', light: '#ffffff' } as const
+
 /** ファイターまわりの効果の色 */
 export const EFFECT_COLORS = {
   /** 足元の影（プレビュー） */

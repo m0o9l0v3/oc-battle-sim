@@ -6,14 +6,17 @@ import { validateConfig } from '../fighter/index.ts'
 import {
   MAX_MATCHES,
   SESSION_STORAGE_KEY,
+  type CharacterConfig,
   type MatchOutcome,
   type MatchRecord,
   type ScreenId,
   type SessionData,
   type SessionSnapshot,
+  type StageData,
 } from '../model/index.ts'
 import { isPlayerMetrics } from '../report/index.ts'
 import { validateStage } from '../stage/index.ts'
+import { decodeTakeHome, type DecodeFailure } from '../share/index.ts'
 import { restoreScreen } from './flow.ts'
 import { sessionFromData, type Session } from './state.ts'
 
@@ -203,22 +206,59 @@ export function stripResetFlag(search: string): string {
   return rest.length > 0 ? `?${rest.join('&')}` : ''
 }
 
-export type BootResult = { session: Session; resetDone: boolean }
+/** URL のフラグメントから読み込んだ、持ち帰りの設定の結果（take-home-share.md §9） */
+export type TakeHomeImport =
+  | { status: 'restored'; character: CharacterConfig; stage: StageData }
+  | { status: 'failed'; reason: DecodeFailure }
+
+export type BootResult = {
+  session: Session
+  resetDone: boolean
+  /** URL に持ち帰りのデータがあったときだけ */
+  takeHome: TakeHomeImport | null
+}
+
+/** フラグメントが、空（または `#` だけ）か */
+const isEmptyFragment = (hash: string): boolean => hash === '' || hash === '#'
 
 /**
  * 起動時の処理（data-model.md §6.4）。`?reset` があれば、破棄して S01 から。
- * なければ、保存を読んで、検証に通れば復元（対戦中だった場合は S06 から）。通らなければ、S01 から。
+ * 次に、URL のフラグメントに持ち帰りのデータがあれば、復号する。成功したら、1P とステージを復元した S01 から始める
+ * （保存は、S01 では残さない。先へ進んだときに保存される）。失敗したら、保存を使って（なければ S01 から）、失敗を返す。
+ * どちらでもなければ、保存を読んで、検証に通れば復元（対戦中だった場合は S06 から）。通らなければ、S01 から。
  */
-export function boot(repo: SessionRepository, search: string, fresh: () => Session): BootResult {
+export function boot(
+  repo: SessionRepository,
+  search: string,
+  fresh: () => Session,
+  hash = '',
+): BootResult {
   if (hasResetFlag(search)) {
     repo.clear()
-    return { session: fresh(), resetDone: true }
+    return { session: fresh(), resetDone: true, takeHome: null }
+  }
+  let takeHome: TakeHomeImport | null = null
+  if (!isEmptyFragment(hash)) {
+    const r = decodeTakeHome(hash)
+    if (r.ok) {
+      const base = fresh()
+      const session: Session = {
+        ...base,
+        data: { ...base.data, p1: r.character, stage: r.stage, stagePresetId: null },
+      }
+      return {
+        session,
+        resetDone: false,
+        takeHome: { status: 'restored', character: r.character, stage: r.stage },
+      }
+    }
+    takeHome = { status: 'failed', reason: r.reason }
   }
   const snap = repo.load()
   if (!snap) {
     // 保存があっても壊れていたら、捨てる（壊れたデータを残さない）
     repo.clear()
-    return { session: fresh(), resetDone: false }
+    return { session: fresh(), resetDone: false, takeHome }
   }
-  return { session: sessionFromData(snap.data), resetDone: false }
+  return { session: sessionFromData(snap.data), resetDone: false, takeHome }
 }
