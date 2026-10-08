@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { editorFromStage, type EditorState } from '../stage/index.ts'
 import { canGoBack, nextMatchNo, type Session, type SessionRepository } from '../session/index.ts'
 import { AppearanceScreen } from './AppearanceScreen.tsx'
+import { BattleReport } from './BattleReport.tsx'
 import { StepBar } from './components/index.ts'
 import {
   CompareScreen,
@@ -9,7 +10,6 @@ import {
   MatchScreen,
   PrepScreen,
   RedesignScreen,
-  ReportScreen,
   StartScreen,
 } from './FlowScreens.tsx'
 import { PracticeScreen } from './PracticeScreen.tsx'
@@ -134,7 +134,11 @@ export function Screens({ session, dispatch }: { session: Session; dispatch: Dis
       break
     case 'S08':
       screen = last ? (
-        <ReportScreen record={last} onRedesign={() => dispatch({ type: 'REDESIGN' })} />
+        <BattleReport
+          record={last}
+          hasPreviousMatch={data.matches.length > 1}
+          onRedesign={() => dispatch({ type: 'REDESIGN' })}
+        />
       ) : null
       break
     case 'S09':

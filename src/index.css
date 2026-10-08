@@ -944,3 +944,110 @@ main.flow {
   width: min(100%, calc((100vh - 26rem) * 24 / 14));
   min-width: 420px;
 }
+
+/* Battle Report（S08。battle-report.md §7）。結果は、中立の色で示す（よい・わるいに、色を使わない） */
+.battle-report__head {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.battle-report__head h2 {
+  margin: 0;
+}
+.battle-report__outcome {
+  margin: 0;
+  font-size: var(--fs-heading);
+  font-weight: 700;
+}
+.battle-report__meta,
+.battle-report__note {
+  margin: 0.25rem 0;
+  font-size: var(--fs-note);
+}
+.battle-report__body {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.battle-report__motion {
+  flex: 1;
+  min-width: 460px;
+}
+.report-table {
+  border-collapse: collapse;
+  font-size: var(--fs-note);
+}
+.report-table caption {
+  text-align: left;
+  font-weight: 700;
+  font-size: var(--fs-body);
+}
+.report-table th,
+.report-table td {
+  border: 1px solid var(--c-border);
+  padding: 0.15rem 0.6rem;
+  text-align: left;
+}
+.report-table tbody th {
+  font-weight: 400;
+}
+.report-table__num {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.battle-report__foe {
+  margin-top: 0.4rem;
+  font-size: var(--fs-note);
+}
+.battle-report__question {
+  margin: 0.5rem 0;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-left: 6px solid var(--c-main);
+  background: var(--c-selected-bg);
+}
+.battle-report__footer {
+  margin-top: 0.5rem;
+}
+.report-table tbody th {
+  white-space: nowrap;
+}
+.report-table--motion td:not(.report-table__num) {
+  min-width: 5rem;
+  line-height: 1.2;
+}
+.report-table--motion td.report-table__num {
+  padding: 0.1rem 0.5rem;
+}
+.battle-report__body {
+  gap: 0.75rem;
+  flex-wrap: nowrap;
+}
+.battle-report__motion {
+  min-width: 0;
+  flex: 1 1 640px;
+}
+/* 結果の表は、細く（余白を詰める）。動きの表に、幅を渡す */
+.battle-report__body > .report-table {
+  flex: none;
+  width: 290px;
+}
+.battle-report__body > .report-table th,
+.battle-report__body > .report-table td {
+  padding: 0.1rem 0.4rem;
+}
+.report-table--motion {
+  width: 100%;
+}
+.report-table--motion .report-table__num {
+  font-size: var(--fs-note);
+}
+.report-table--motion tbody th {
+  white-space: normal;
+  min-width: 6.5rem;
+  line-height: 1.2;
+}

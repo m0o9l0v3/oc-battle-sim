@@ -171,39 +171,6 @@ function outcomeText(r: MatchRecord): string {
   return `${head}（${m.report.reasons[reason]}）`
 }
 
-/** S08 Battle Report（最小。本格的なレポートは #38） */
-export function ReportScreen({
-  record,
-  onRedesign,
-}: {
-  record: MatchRecord
-  onRedesign: () => void
-}) {
-  return (
-    <div className="report">
-      <h2>{m.report.title(record.matchNo)}</h2>
-      <p className="report__outcome" role="status">
-        {outcomeText(record)}
-      </p>
-      <h3>{m.report.used}</h3>
-      <div className="prep__players">
-        <section>
-          <h4>1P {resolveName(record.p1Config.name, 'p1')}</h4>
-          <StatSummary stats={record.p1Config.stats} />
-        </section>
-        <section>
-          <h4>2P {resolveName(record.p2Config.name, 'p2')}</h4>
-          <StatSummary stats={record.p2Config.stats} />
-        </section>
-      </div>
-      <p className="practice__note">{m.report.note}</p>
-      <Button variant="main" onClick={onRedesign}>
-        {m.report.redesign}
-      </Button>
-    </div>
-  )
-}
-
 /** S09 設定を変えて作り直す。直前の戦の値（まえ）を見ながら、能力値だけを変える */
 export function RedesignScreen({
   session,
