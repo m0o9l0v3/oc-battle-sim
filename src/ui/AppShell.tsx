@@ -3,15 +3,9 @@ import { editorFromStage, type EditorState } from '../stage/index.ts'
 import { canGoBack, nextMatchNo, type Session, type SessionRepository } from '../session/index.ts'
 import { AppearanceScreen } from './AppearanceScreen.tsx'
 import { BattleReport } from './BattleReport.tsx'
+import { CompareView } from './CompareView.tsx'
 import { StepBar } from './components/index.ts'
-import {
-  CompareScreen,
-  EndScreen,
-  MatchScreen,
-  PrepScreen,
-  RedesignScreen,
-  StartScreen,
-} from './FlowScreens.tsx'
+import { EndScreen, MatchScreen, PrepScreen, RedesignScreen, StartScreen } from './FlowScreens.tsx'
 import { PracticeScreen } from './PracticeScreen.tsx'
 import { useSession } from './session.ts'
 import { StageEditorScreen } from './StageEditorScreen.tsx'
@@ -154,7 +148,9 @@ export function Screens({ session, dispatch }: { session: Session; dispatch: Dis
       break
     case 'S11':
       screen = (
-        <CompareScreen
+        <CompareView
+          // 戦が増えたら、既定（直前の戦と、いま終わった戦）から、始め直す
+          key={data.matches.at(-1)?.matchNo}
           matches={data.matches}
           onRedesign={() => dispatch({ type: 'REDESIGN' })}
           onEnd={() => dispatch({ type: 'END' })}

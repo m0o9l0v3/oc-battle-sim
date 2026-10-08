@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { DEFAULT_STATS, createDefaultConfig } from '../fighter/index.ts'
-import type { CharacterConfig, StageData, Stats } from '../model/index.ts'
+import type { CharacterConfig, MatchRecord, StageData, Stats } from '../model/index.ts'
 import { DEFAULT_PRESET_ID, createEditor, presetStage, type EditorState } from '../stage/index.ts'
 import { DEMO_STAGE } from './demoStage.ts'
 import { createBot } from '../battle/balance.ts'
@@ -11,6 +11,7 @@ import {
   stepMatch,
 } from '../battle/index.ts'
 import { buildMatchResult, MetricsRecorder } from '../report/index.ts'
+import { CompareView } from './CompareView.tsx'
 import { BattleReport } from './BattleReport.tsx'
 import { PracticeScreen } from './PracticeScreen.tsx'
 import { StageEditorScreen } from './StageEditorScreen.tsx'
@@ -105,40 +106,60 @@ function PracticeDemo() {
   )
 }
 
-/** 実際の試合（ボットどうし）を、最後まで動かして、指標を記録し、Battle Report を出す */
+/** 実際の試合（ボットどうし）を、最後まで動かして、指標を記録し、戦の記録を作る */
+function simulateRecord(matchNo: number, stats: Stats, seed: number): MatchRecord {
+  const p1 = { ...createDefaultConfig('p1'), stats }
+  const p2 = createDefaultConfig('p2')
+  const stage = presetStage('standard')
+  const ctx = createMatchContext(stage, [p1.stats, p2.stats])
+  const bots = [createBot(0, ctx, seed), createBot(1, ctx, seed)] as const
+  const rec = new MetricsRecorder()
+  let st = createMatchState(ctx)
+  while (!isMatchFinished(st, ctx)) {
+    const r = stepMatch(st, [bots[0](st), bots[1](st)], ctx)
+    rec.record(st, r.state, r.events)
+    st = r.state
+  }
+  return buildMatchResult({
+    matchNo,
+    p1Config: p1,
+    p2Config: p2,
+    stage,
+    outcome: st.outcome!,
+    durationSec: Math.round((ctx.steps.time - st.timeLeft) / 60),
+    metrics: rec.result(st),
+  })
+}
+
 function BattleReportDemo() {
   const [seed, setSeed] = useState(1)
-  const record = useMemo(() => {
-    const p1 = {
-      ...createDefaultConfig('p1'),
-      stats: { attackPower: 7, defense: 3, jumpPower: 5, speed: 5 },
-    }
-    const p2 = createDefaultConfig('p2')
-    const stage = presetStage('standard')
-    const ctx = createMatchContext(stage, [p1.stats, p2.stats])
-    const bots = [createBot(0, ctx, seed), createBot(1, ctx, seed)] as const
-    const rec = new MetricsRecorder()
-    let st = createMatchState(ctx)
-    while (!isMatchFinished(st, ctx)) {
-      const r = stepMatch(st, [bots[0](st), bots[1](st)], ctx)
-      rec.record(st, r.state, r.events)
-      st = r.state
-    }
-    const [m1, m2] = rec.result(st)
-    return buildMatchResult({
-      matchNo: 1,
-      p1Config: p1,
-      p2Config: p2,
-      stage,
-      outcome: st.outcome!,
-      durationSec: 70,
-      metrics: [m1, m2],
-    })
-  }, [seed])
+  const record = useMemo(
+    () => simulateRecord(1, { attackPower: 7, defense: 3, jumpPower: 5, speed: 5 }, seed),
+    [seed],
+  )
   return (
     <>
       <Button onClick={() => setSeed((n) => n + 1)}>べつの しあい（ボットどうし）</Button>
       <BattleReport record={record} hasPreviousMatch={false} onRedesign={() => {}} />
+    </>
+  )
+}
+
+/** 第 1 戦（標準）と第 2 戦（すうじを かえた）を、実際に動かして、比べる */
+function CompareDemo() {
+  const [seed, setSeed] = useState(1)
+  const matches = useMemo(
+    () => [
+      simulateRecord(1, { attackPower: 5, defense: 5, jumpPower: 5, speed: 5 }, seed),
+      simulateRecord(2, { attackPower: 7, defense: 3, jumpPower: 5, speed: 5 }, seed),
+      simulateRecord(3, { attackPower: 4, defense: 5, jumpPower: 6, speed: 5 }, seed),
+    ],
+    [seed],
+  )
+  return (
+    <>
+      <Button onClick={() => setSeed((n) => n + 1)}>べつの しあい（ボットどうし）</Button>
+      <CompareView key={seed} matches={matches} onRedesign={() => {}} onEnd={() => {}} />
     </>
   )
 }
@@ -182,6 +203,7 @@ export type DevSection = { id: string; title: string; render: () => ReactNode }
  * 画面の遷移（S01〜S12）は #35 で作る。ここは、部品の動作確認だけに使う
  */
 export const DEV_SECTIONS: DevSection[] = [
+  { id: 'compare', title: '結果の比較（S11。#39）', render: () => <CompareDemo /> },
   { id: 'report', title: 'Battle Report（S08。#38）', render: () => <BattleReportDemo /> },
   { id: 'practice', title: '試しに うごかす（S05。#34）', render: () => <PracticeDemo /> },
   { id: 'stage-editor', title: 'ステージを つくる（S04。#33）', render: () => <StageEditorDemo /> },
