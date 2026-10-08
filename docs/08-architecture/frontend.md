@@ -57,6 +57,7 @@ TypeScript + React + Vite のフロントエンドを、次の2つの世界に�
 | `src/report/` | core | 試合のイベント列から Battle Report と第1戦・再戦の比較を作る | 既存 |
 | `src/cpu/` | core | 簡易CPUの意思決定。盤面を読み、入力を返す（#72） | **新規** |
 | `src/share/` | core | 持ち帰りデータの符号化・復号（Base64URL、ビットづめ）、検証の呼び出し | **新規** |
+| `src/progress/` | core | 親機の進行状態の管理（フェーズの遷移、一斉リセット、再戦の受付）と、進行状態の検証。親機サーバー（`server/`）と参加者PCの両方が使う（[event-control.md](../01-experience/event-control.md)） | **新規**（#67） |
 | `src/input/` | adapter | `InputSource` の定義と実装（キーボード、仮想パッド、CPU、リプレイ） | 既存 |
 | `src/render/` | adapter | Canvas 2D の描画（ステージ、パーツ合成のファイター、エフェクト）、アニメーション | **新規** |
 | `src/engine/` | adapter | ゲームループ（固定ステップ + 上限付き積算）、`MatchRunner`、キャンバスのサイズ管理 | 既存 |
@@ -323,6 +324,8 @@ type ProgressState = { phase: Phase; sessionId: string; revision: number /* … 
 | H5 | 参加者のデータ（設定、ステージ、結果）は、親機へ送らない（event-control.md §8.2） |
 | H6 | 持ち帰り後（GitHub Pages）は、親機がない。`HostLink` は、接続先がない構成では**何もしない実装**（`NullHostLink`）に差し替える。画面の分岐は、`HostLink` の実装の差し替えだけで済む |
 
+実装（#68）: `src/net/hostLink.ts`（`createHostLink`、`nullHostLink`）、`src/ui/hostProgress.ts`（購読。GitHub Pages 用のビルドは `VITE_HOST_LINK=off` で `nullHostLink`）、`src/session/gate.ts`（H2: 画面・操作ごとの可否と理由）、`src/session/sync.ts`（H3）。画面の中の操作が止まっているときは、画面を `inert` にして（表示のみ）、理由を出す。「はじめる」「さいせん」「おわる」は、ボタンごとに押せなくして、理由をボタンの近くに出す。
+
 この境界により、「通信がなくても動く」ことが型のレベルで保証される（`HostLink` を使わない `ui` の部分がある、`MatchRunner` は `HostLink` を知らない）。
 
 ## 9. 画面の世界（`ui/`）
@@ -401,3 +404,5 @@ type ProgressState = { phase: Phase; sessionId: string; revision: number /* … 
 |---|---|---|---|
 | 2026-10-04 | 初版 | #17 の対応。通信対戦（REQ-NET-02）の取り下げを踏まえ、「ネットワーク対戦との切り分け」を、入力ソースの差し替え口として残す形にした | #20、#21、#22〜#24、#72、#18（保存方式）。src/ に `render/`、`cpu/`、`share/` を追加する |
 | 2026-10-05 | `model/` を追加（共通の型）。保存方式を data-model.md で確定 | #18 の対応 | data-model.md、src/model/ |
+| 2026-10-09 | §4.1 に `src/progress/`（core）を追加 | #67 の実装。親機サーバーと参加者PCで、進行状態の検証を共有するため | event-control.md、event-host.md |
+| 2026-10-09 | §8.2 に、親機連携の実装（#68）の場所を追記 | #68 の実装 | event-control.md、data-model.md |

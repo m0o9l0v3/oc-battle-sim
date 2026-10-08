@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>進行管理（親機）</title>
+    <!-- 親機の管理画面（event-control.md §7）。表示する値は、サーバーが計算する（server/app.ts の /api/admin/status）。
+         ここは、表示とボタンだけ。参加者ごとの作品・設定は、扱わない（§7.3） -->
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #10131a;
+        color: #eef1f6;
+        font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 20px 16px 40px;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 16px;
+      }
+      .card {
+        background: #171b26;
+        border: 1px solid #2a3040;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .phase {
+        text-align: center;
+        font-size: 28px;
+        font-weight: bold;
+      }
+      .phase small {
+        display: block;
+        font-size: 13px;
+        font-weight: normal;
+        color: #b7c0d1;
+      }
+      .remaining {
+        text-align: center;
+        font-size: 40px;
+        font-variant-numeric: tabular-nums;
+        color: #7fd8c8;
+        margin: 8px 0 12px;
+      }
+      .remaining.over {
+        color: #ffb74d;
+      }
+      dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 6px 16px;
+        font-size: 14px;
+      }
+      dt {
+        color: #b7c0d1;
+      }
+      dd {
+        margin: 0;
+        font-weight: bold;
+      }
+      .ok {
+        color: #4ce0b3;
+      }
+      .ng {
+        color: #ff7043;
+      }
+      .actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 8px;
+      }
+      button {
+        font: inherit;
+        font-size: 15px;
+        padding: 12px 8px;
+        border-radius: 6px;
+        border: 1px solid #333a4d;
+        background: #1d2231;
+        color: #eef1f6;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) {
+        background: #263049;
+      }
+      button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      button.next {
+        border-color: #4ce0b3;
+        box-shadow: 0 0 0 2px #4ce0b355;
+      }
+      .rematch {
+        margin-top: 8px;
+      }
+      #reset {
+        width: 100%;
+        background: #402028;
+        border-color: #6b2b36;
+      }
+      #reset:hover:not(:disabled) {
+        background: #522029;
+      }
+      .message {
+        min-height: 20px;
+        color: #ff7043;
+        font-size: 14px;
+      }
+      .urls {
+        font-size: 13px;
+        color: #b7c0d1;
+        word-break: break-all;
+      }
+      code {
+        color: #eef1f6;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>進行管理（親機）</h1>
+      <p class="message" id="message" role="alert"></p>
+
+      <section class="card" aria-label="いまの進行">
+        <div class="phase" id="phase">—<small id="phase-code"></small></div>
+        <div class="remaining" id="remaining" aria-label="残り時間">—</div>
+        <dl>
+          <dt>ターンの開始</dt>
+          <dd id="started">—</dd>
+          <dt>終了予定</dt>
+          <dd id="ends">—</dd>
+          <dt>再戦の受付</dt>
+          <dd id="rematch">—</dd>
+          <dt>次の操作</dt>
+          <dd id="next">—</dd>
+          <dt>接続中の参加者PC</dt>
+          <dd id="clients">—</dd>
+          <dt>サーバー</dt>
+          <dd id="server">—</dd>
+        </dl>
+      </section>
+
+      <section class="card" aria-label="進行の操作">
+        <div class="actions">
+          <button type="button" data-command="START_PRODUCTION">制作開始</button>
+          <button type="button" data-command="START_BATTLE">対戦開始</button>
+          <button type="button" data-command="START_SHARING">持ち帰り開始</button>
+          <button type="button" data-command="TO_BUFFER">予備時間へ</button>
+          <button type="button" data-command="END">終了</button>
+        </div>
+        <div class="actions rematch">
+          <button type="button" data-command="STOP_REMATCH">再戦を止める</button>
+          <button type="button" data-command="OPEN_REMATCH">再戦を再開する</button>
+        </div>
+      </section>
+
+      <section class="card" aria-label="一斉リセット">
+        <button type="button" id="reset" data-command="RESET">
+          一斉リセット（全台を S01 に戻す）
+        </button>
+      </section>
+
+      <section class="card urls" aria-label="参加者PCの URL">
+        <div>参加者PCで開く URL: <code id="urls">—</code></div>
+        <div>個別リセット用ブックマーク: <code id="reset-urls">—</code></div>
+      </section>
+    </main>
+
+    <script>
+      'use strict'
+      // トークンは URL に残す（管理画面を更新しても、開き直せるように）。親機PCの外からは、使えない
+      const token = new URLSearchParams(location.search).get('token') || ''
+      const $ = (id) => document.getElementById(id)
+      const buttons = Array.from(document.querySelectorAll('button[data-command]'))
+      let busy = false
+      let latest = null
+
+      const clock = (ms) =>
+        ms === null ? '—' : new Date(ms).toLocaleTimeString('ja-JP', { hour12: false })
+
+      function render(s) {
+        latest = s
+        $('phase').firstChild.textContent = s.phaseLabel
+        $('phase-code').textContent = s.phase
+        $('remaining').textContent = s.remainingText
+        $('remaining').classList.toggle('over', s.remainingMs !== null && s.remainingMs < 0)
+        $('started').textContent = clock(s.turnStartedAt)
+        $('ends').textContent = clock(s.turnEndsAt)
+        $('rematch').textContent = s.rematchOpen ? '受付中' : '停止中'
+        $('rematch').className = s.rematchOpen ? 'ok' : 'ng'
+        $('next').textContent = s.nextCommandLabel
+        $('clients').textContent = `約 ${s.clients} 台`
+        $('urls').textContent = s.participantUrls.join('  ') || '—'
+        $('reset-urls').textContent = s.participantUrls.map((u) => u + '?reset').join('  ') || '—'
+        for (const b of buttons) {
+          const c = b.dataset.command
+          b.disabled = busy || !s.commands[c]
+          b.classList.toggle('next', c === s.nextCommand)
+        }
+      }
+
+      function setServer(ok) {
+        $('server').textContent = ok ? '稼働中' : '応答なし'
+        $('server').className = ok ? 'ok' : 'ng'
+      }
+
+      async function api(path, init) {
+        const res = await fetch(path, {
+          cache: 'no-store',
+          ...init,
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        })
+        const body = await res.json().catch(() => null)
+        return { res, body }
+      }
+
+      async function poll() {
+        try {
+          const { res, body } = await api('/api/admin/status')
+          if (res.status === 401 || res.status === 403) {
+            $('message').textContent =
+              '管理画面のトークンが違います。サーバーを起動したときに表示された URL を開き直してください（再起動するとトークンが変わります）。'
+            setServer(true)
+            return
+          }
+          if (!res.ok || !body) throw new Error()
+          setServer(true)
+          render(body)
+        } catch {
+          setServer(false)
+        }
+      }
+
+      async function send(command) {
+        if (command === 'RESET') {
+          const ok = confirm(
+            '一斉リセットします。全台の参加者PCが、S01（はじめ）に戻り、いまの組のデータは消えます。よろしいですか？',
+          )
+          if (!ok) return
+        }
+        busy = true
+        if (latest) render(latest)
+        $('message').textContent = ''
+        try {
+          const { res, body } = await api('/api/admin/command', {
+            method: 'POST',
+            body: JSON.stringify({ command }),
+          })
+          if (res.status === 409)
+            $('message').textContent = 'いまのフェーズでは、この操作はできません。'
+          else if (!res.ok) $('message').textContent = `操作に失敗しました（${res.status}）`
+          if (body && body.phase) render(body)
+        } catch {
+          $('message').textContent =
+            'サーバーに接続できません。親機のサーバーが動いているか確かめてください。'
+        } finally {
+          busy = false
+          if (latest) render(latest)
+        }
+      }
+
+      for (const b of buttons) b.addEventListener('click', () => send(b.dataset.command))
+      poll()
+      setInterval(poll, 1000)
+    </script>
+  </body>
+</html>

@@ -11,9 +11,11 @@
     "test": "vitest run",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check:dist": "node scripts/check-dist.mjs dist"
+    "check:dist": "node scripts/check-dist.mjs dist",
+    "host": "node --experimental-strip-types --disable-warning=ExperimentalWarning server/main.ts"
   },
   "dependencies": {
+    "qrcode-generator": "^2.0.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

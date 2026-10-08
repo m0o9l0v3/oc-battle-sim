@@ -7,7 +7,9 @@ import { resolveName, STAT_KEYS } from '../fighter/index.ts'
 import { DEFAULT_BINDINGS } from '../input/index.ts'
 import type { CharacterConfig, Stats } from '../model/index.ts'
 import { canRematch, statsChanged, type Session } from '../session/index.ts'
+import { buildTakeHomeUrl, PUBLIC_APP_URL } from '../share/index.ts'
 import { keysLabel } from './keyLabels.ts'
+import { QrCode } from './QrCode.tsx'
 import { MatchCanvas, type MatchHud } from './MatchCanvas.tsx'
 import { StatEditor } from './StatEditor.tsx'
 import { statPercent } from './statView.ts'
@@ -16,7 +18,8 @@ import { Button, HudPanel, HudPlayer } from './components/index.ts'
 const m = messages.flow
 const sm = messages.stat
 
-export function StartScreen({ onStart }: { onStart: () => void }) {
+/** S01 スタート。親機の進行で「はじめる」を押せないときは、理由をボタンの近くに出す（ui-design.md §7.1） */
+export function StartScreen({ onStart, blocked }: { onStart: () => void; blocked?: string }) {
   return (
     <div className="flow-start">
       <h1>{m.start.title}</h1>
@@ -26,7 +29,7 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
           <li key={t}>{t}</li>
         ))}
       </ol>
-      <Button variant="main" onClick={onStart}>
+      <Button variant="main" onClick={onStart} disabled={!!blocked} reason={blocked ?? ''}>
         {m.start.begin}
       </Button>
     </div>
@@ -35,7 +38,7 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
 
 const OPERATIONS = ['left', 'right', 'jump', 'attack'] as const
 
-function StatSummary({ stats }: { stats: Stats }) {
+export function StatSummary({ stats }: { stats: Stats }) {
   return (
     <ul className="practice__stats">
       {STAT_KEYS.map((key) => (
@@ -169,18 +172,21 @@ export function RedesignScreen({
   onChangeP2,
   onRematch,
   onBack,
+  rematchBlocked,
 }: {
   session: Session
   onChangeP1: (c: CharacterConfig) => void
   onChangeP2: (c: CharacterConfig) => void
   onRematch: () => void
   onBack: () => void
+  /** 親機の進行で、再戦を始められない理由（再戦の受付の停止など。event-control.md §6.3） */
+  rematchBlocked?: string
 }) {
   const { p1, p2 } = session.data
   const last = session.data.matches.at(-1)
   const [foeOpen, setFoeOpen] = useState(false)
   const changed = !!last && statsChanged(p1, last.p1Config)
-  const ok = canRematch(session)
+  const ok = canRematch(session) && !rematchBlocked
   return (
     <div className="redesign">
       <h2>{m.redesign.title}</h2>
@@ -216,7 +222,7 @@ export function RedesignScreen({
         <div className="stat-screen__next">
           {/* 押せない理由は、ボタンの近くに出す */}
           <p className="stat-screen__reason" role="status">
-            {!changed ? m.redesign.mustChange : ''}
+            {rematchBlocked ?? (!changed ? m.redesign.mustChange : '')}
           </p>
           <Button variant="main" disabled={!ok} onClick={onRematch}>
             {m.redesign.rematch}
@@ -227,24 +233,49 @@ export function RedesignScreen({
   )
 }
 
-/** S12 おわり（最小。持ち帰り QR は #61）。見た目・能力値・ステージは、リセットまで保持する */
+/** S12 おわり。見た目・能力値・ステージは、リセットまで保持する。持ち帰り用の QR と URL（take-home-share.md） */
 export function EndScreen({ session, onReset }: { session: Session; onReset: () => void }) {
   const { p1, stage } = session.data
+  const url = buildTakeHomeUrl(PUBLIC_APP_URL, p1, stage)
   return (
     <div className="end">
       <h2>{m.end.title}</h2>
       <p>{m.end.lead}</p>
-      <section>
-        <h3>
-          {m.end.yours}: {resolveName(p1.name, 'p1')}
-        </h3>
-        <StatSummary stats={p1.stats} />
-        <p className="practice__note">{stage.name}</p>
-      </section>
-      <p className="practice__note">{m.end.qrNote}</p>
-      <Button variant="sub" onClick={onReset}>
-        {m.end.reset}
-      </Button>
+      <div className="end__body">
+        <div className="end__side">
+          <section>
+            <h3>
+              {m.end.yours}: {resolveName(p1.name, 'p1')}
+            </h3>
+            <StatSummary stats={p1.stats} />
+            <p className="practice__note">{stage.name}</p>
+          </section>
+          <section>
+            <h3>{m.end.qrTitle}</h3>
+            {url ? (
+              <>
+                <p className="practice__note">{m.end.qrLead}</p>
+                <p className="practice__note">{m.end.qrNameNote}</p>
+                <p className="practice__note">{m.end.qrShareNote}</p>
+              </>
+            ) : (
+              <p role="alert">{m.end.qrFailed}</p>
+            )}
+          </section>
+          <Button variant="sub" onClick={onReset}>
+            {m.end.reset}
+          </Button>
+        </div>
+        {url && (
+          <section className="end__qr">
+            <QrCode text={url} label={m.end.qrAlt} />
+            <label className="end__url">
+              <span>{m.end.urlLabel}</span>
+              <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
+            </label>
+          </section>
+        )}
+      </div>
     </div>
   )
 }
