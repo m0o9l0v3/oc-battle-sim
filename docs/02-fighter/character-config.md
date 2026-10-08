@@ -170,7 +170,7 @@ hasStatChange(before: Stats, after: Stats): boolean
 ## 8. 持ち帰り用QRとの関係
 
 - `CharacterConfig` は、持ち帰り用QR（REQ-SHR-01）に入れる設定のうち、ファイターに関する部分。
-- QR に入れる形式（圧縮、順序、バージョン）は、#60 で定める。型の変更は `schemaVersion` で扱う。
+- QR に入れる形式（ビットづめ、順序、バージョン）は、[take-home-share.md](../05-multiplayer/take-home-share.md) §6 で定めた。型の変更は `schemaVersion` で扱う。
 - 検証は、**読み込みの検証**（§5.1）を使う。
 
 ### 8.1 データ量の見積もり
@@ -182,7 +182,7 @@ hasStatChange(before: Stats, after: Stats): boolean
 | `name`（UTF-8 で最大30バイト。Base64URL にすると） | **最大 40文字**（最悪のケース。§5.5 で上限を保証） |
 | `schemaVersion` | 1 |
 
-ステージのデータを含めた全体の上限は、#60 と #13 で、QRとして読み取れる長さから決める。名前は、**最悪のケースが 40 文字**に収まるため、その値を、全体の長さの見積もりに使う。
+ステージのデータを含めた全体の上限は、take-home-share.md §6.2・§7 で確認した。名前は、**最悪のケースが 40 文字**に収まるため、その値を、全体の長さの見積もりに使う。
 
 ## 9. 例外・制約
 
