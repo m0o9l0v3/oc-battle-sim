@@ -74,6 +74,29 @@ describe('起動時の持ち帰りデータ', () => {
     expect(r2.session.data.screen).toBe('S02')
   })
 
+  it('復元できたら、新しいセッション。保存の sessionId は引き継がず、復元したものとしても扱わない', () => {
+    const repo = createRepository(new MemoryStorage())
+    repo.save(toSnapshot(reduceFlow(createSession(), { type: 'START' }), 'turn-3'))
+    expect(boot(repo, '', createSession, fragment())).toMatchObject({
+      takeHome: { status: 'restored' },
+      sessionId: null,
+      restored: false,
+    })
+  })
+
+  it('失敗したら、保存の sessionId と復元の印を、そのまま返す', () => {
+    const repo = createRepository(new MemoryStorage())
+    repo.save(toSnapshot(reduceFlow(createSession(), { type: 'START' }), 'turn-3'))
+    expect(boot(repo, '', createSession, '#u1.abc')).toMatchObject({
+      takeHome: { status: 'failed' },
+      sessionId: 'turn-3',
+      restored: true,
+    })
+    expect(boot(createRepository(new MemoryStorage()), '', createSession, '#u1.abc')).toMatchObject(
+      { takeHome: { status: 'failed' }, sessionId: null, restored: false },
+    )
+  })
+
   it('?reset が先。破棄して S01 から、持ち帰りデータは使わない', () => {
     const storage = new MemoryStorage()
     storage.setItem(SESSION_STORAGE_KEY, '{}')

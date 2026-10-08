@@ -35,7 +35,10 @@ import { StatScreen } from './StatScreen.tsx'
  * ここは、画面を選んで、操作を渡すだけ
  */
 export function AppShell({ repo, link }: { repo?: SessionRepository; link?: HostLink }) {
-  const { session, dispatch: baseDispatch, syncHost } = useSession(repo)
+  const { session, dispatch: baseDispatch, syncHost, takeHome } = useSession(repo)
+  // 持ち帰りの設定の入口。選ぶまで、S01 の前に出す（選んだら、URL のフラグメントを取り除く）
+  const [entry, setEntry] = useState(takeHome)
+  const [mobile] = useState(isMobileEnvironment)
   // リセットのたびに、画面の部品の状態（S04 のエディタなど）を、作り直す（前の参加者の作品を、次の参加者に見せない）
   const [generation, setGeneration] = useState(0)
   const reset = useCallback(() => {
@@ -67,7 +70,31 @@ export function AppShell({ repo, link }: { repo?: SessionRepository; link?: Host
     },
     [baseDispatch],
   )
-
+  const leaveEntry = useCallback(() => {
+    setEntry(null)
+    if (typeof window !== 'undefined' && window.location.hash !== '') {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+    }
+  }, [])
+  // 失敗は、保存した途中の画面があっても、先に伝える（壊れた URL を、黙って無視しない）
+  if (entry && (entry.status === 'failed' || session.data.screen === 'S01')) {
+    return (
+      <TakeHomeEntry
+        result={entry}
+        mobile={mobile}
+        onPlay={() => {
+          dispatch({ type: 'IMPORT_PLAY' })
+          leaveEntry()
+        }}
+        onFresh={() => {
+          dispatch({ type: 'RESET' })
+          leaveEntry()
+        }}
+        onDismiss={leaveEntry}
+        resume={entry.status === 'failed' && session.data.screen !== 'S01'}
+      />
+    )
+  }
   return <Screens key={generation} session={session} dispatch={dispatch} host={host} />
 }
 
