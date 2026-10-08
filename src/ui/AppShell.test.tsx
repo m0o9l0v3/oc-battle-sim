@@ -3,7 +3,14 @@ import { describe, expect, it } from 'vitest'
 import { messages } from '../assets/index.ts'
 import type { ScreenId } from '../model/index.ts'
 import { presetStage } from '../stage/index.ts'
-import { createSession, reduceFlow, type FlowAction, type Session } from '../session/index.ts'
+import {
+  createRepository,
+  createSession,
+  reduceFlow,
+  toSnapshot,
+  type FlowAction,
+  type Session,
+} from '../session/index.ts'
 import { AppShell, Screens } from './AppShell.tsx'
 
 const m = messages.flow
@@ -140,5 +147,38 @@ describe('AppShell（保存先なしの環境）', () => {
     expect(typeof window).toBe('undefined')
     const markup = renderToStaticMarkup(<AppShell />)
     expect(markup).toContain(m.start.title)
+  })
+})
+
+describe('AppShell: 持ち帰りの URL（フラグメント）', () => {
+  const withWindow = (hash: string, fn: () => void) => {
+    const g = globalThis as unknown as { window?: unknown }
+    g.window = { location: { search: '', hash, pathname: '/' } }
+    try {
+      fn()
+    } finally {
+      delete g.window
+    }
+  }
+  it('壊れた URL は、保存した途中の画面があっても、先に失敗を伝える', () => {
+    const storage = new Map<string, string>()
+    const repo = createRepository({
+      getItem: (k) => storage.get(k) ?? null,
+      setItem: (k, v) => void storage.set(k, v),
+      removeItem: (k) => void storage.delete(k),
+    })
+    repo.save(toSnapshot(afterMatch1()))
+    withWindow('#u1.abc', () => {
+      const markup = renderToStaticMarkup(<AppShell repo={repo} />)
+      expect(markup).toContain(messages.takeHome.failedBody('UNKNOWN_VERSION'))
+      expect(markup).toContain(messages.takeHome.failedResume)
+    })
+  })
+
+  it('壊れた URL で、保存がなければ、標準で始める案内', () => {
+    withWindow('#t1.broken', () => {
+      const markup = renderToStaticMarkup(<AppShell repo={createRepository(undefined)} />)
+      expect(markup).toContain(messages.takeHome.failedStandard)
+    })
   })
 })

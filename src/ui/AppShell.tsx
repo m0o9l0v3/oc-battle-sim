@@ -37,7 +37,8 @@ export function AppShell({ repo }: { repo?: SessionRepository }) {
       window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
     }
   }, [])
-  if (entry && session.data.screen === 'S01') {
+  // 失敗は、保存した途中の画面があっても、先に伝える（壊れた URL を、黙って無視しない）
+  if (entry && (entry.status === 'failed' || session.data.screen === 'S01')) {
     return (
       <TakeHomeEntry
         result={entry}
@@ -51,6 +52,7 @@ export function AppShell({ repo }: { repo?: SessionRepository }) {
           leaveEntry()
         }}
         onDismiss={leaveEntry}
+        resume={entry.status === 'failed' && session.data.screen !== 'S01'}
       />
     )
   }

@@ -240,6 +240,8 @@ export const messages = {
         ? 'あたらしい バージョンの QR かも しれないよ。ページを ひらきなおしてね'
         : 'もちかえった せっていを よみこめなかったよ。QRを もういちど よみとってね',
     failedStandard: 'このまま ひょうじゅんの ファイターで あそぶ',
+    failedResume: 'まえの つづきから あそぶ',
+    previewLabel: (name: string) => `${name}の すがた`,
     failedNote: 'ひょうじゅんの ファイターで はじめられるよ',
   },
   /** Battle Report（S08）。結果と判断材料（数字）を、事実として示す。評価・指示の言葉を使わない（battle-report.md §8） */

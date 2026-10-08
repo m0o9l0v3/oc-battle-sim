@@ -12,6 +12,9 @@ export const ALLOWED = [
   'https://react.dev/errors/',
 ]
 
+/** ビルドで設定した公開URL（VITE_PUBLIC_URL）も、持ち帰りURLの文字として埋め込まれる */
+const CONFIGURED = process.env.VITE_PUBLIC_URL ? [process.env.VITE_PUBLIC_URL] : []
+
 const TEXT_EXT = /\.(html|js|mjs|css|json|svg|webmanifest|txt|map)$/
 
 function* walk(dir) {
@@ -29,7 +32,7 @@ export function findExternalRefs(text) {
   const re = /(?:https?:\/\/|(?<=["'`(=,\s])\/\/(?=[A-Za-z0-9[]))[A-Za-z0-9.:[\]-]+[^\s"'`)<>]*/g
   for (const m of text.matchAll(re)) {
     const url = m[0]
-    if (!ALLOWED.some((a) => url.startsWith(a))) found.push(url)
+    if (![...ALLOWED, ...CONFIGURED].some((a) => url.startsWith(a))) found.push(url)
   }
   return found
 }

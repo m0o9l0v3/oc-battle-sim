@@ -4,7 +4,10 @@ import { messages } from '../assets/index.ts'
 import { resolveName } from '../fighter/index.ts'
 import type { TakeHomeImport } from '../session/index.ts'
 import { buildTakeHomeUrl, PUBLIC_APP_URL } from '../share/index.ts'
+import type { FighterLook } from '../assets/index.ts'
 import { StatSummary } from './FlowScreens.tsx'
+import { FighterPreview } from './FighterPreview.tsx'
+import { StageThumbnail } from './StageThumbnail.tsx'
 import { Button, MessageBand } from './components/index.ts'
 
 const m = messages.takeHome
@@ -28,6 +31,7 @@ export function TakeHomeEntry({
   onPlay,
   onFresh,
   onDismiss,
+  resume = false,
 }: {
   result: TakeHomeImport
   mobile: boolean
@@ -37,6 +41,8 @@ export function TakeHomeEntry({
   onFresh: () => void
   /** 失敗のとき: 標準の設定で始める */
   onDismiss: () => void
+  /** 失敗のとき、保存した途中のデータがある（標準ではなく、その続きになる） */
+  resume?: boolean
 }) {
   const [copied, setCopied] = useState(false)
 
@@ -45,10 +51,10 @@ export function TakeHomeEntry({
       <div className="takehome">
         <h2>{m.failedTitle}</h2>
         <MessageBand kind="warn">{m.failedBody(result.reason)}</MessageBand>
-        {!mobile && <p className="practice__note">{m.failedNote}</p>}
+        {!mobile && !resume && <p className="practice__note">{m.failedNote}</p>}
         {!mobile && (
           <Button variant="main" onClick={onDismiss}>
-            {m.failedStandard}
+            {resume ? m.failedResume : m.failedStandard}
           </Button>
         )}
       </div>
@@ -70,13 +76,23 @@ export function TakeHomeEntry({
     <div className="takehome">
       <h2>{m.title}</h2>
       <p>{m.lead}</p>
-      <section>
-        <h3>{resolveName(character.name, 'p1')}</h3>
-        <StatSummary stats={character.stats} />
-        <p className="practice__note">
-          {m.stage}: {stage.name}
-        </p>
-      </section>
+      <div className="takehome__summary">
+        <section>
+          <h3>{resolveName(character.name, 'p1')}</h3>
+          <FighterPreview
+            look={character.appearance as FighterLook}
+            label={m.previewLabel(resolveName(character.name, 'p1'))}
+            height={180}
+          />
+          <StatSummary stats={character.stats} />
+        </section>
+        <section>
+          <h3>
+            {m.stage}: {stage.name}
+          </h3>
+          <StageThumbnail stage={stage} width={288} />
+        </section>
+      </div>
       {mobile ? (
         <section>
           <MessageBand kind="info">{m.mobileBody}</MessageBand>

@@ -89,6 +89,36 @@ describe('持ち帰りの入口', () => {
     expect(html).not.toContain(m.mobileBody)
   })
 
+  it('復元した外観（プレビュー）とステージの形（見本）を表示する', () => {
+    const html = renderToStaticMarkup(
+      <TakeHomeEntry
+        result={restored}
+        mobile={false}
+        onPlay={noop}
+        onFresh={noop}
+        onDismiss={noop}
+      />,
+    )
+    expect(html).toContain('<canvas')
+    expect(html).toContain(m.previewLabel('ゆうしゃ'))
+    expect(html).toContain('stage-thumb')
+  })
+
+  it('失敗で、保存した途中がある（resume）ときは、「まえの つづきから」にする', () => {
+    const html = renderToStaticMarkup(
+      <TakeHomeEntry
+        result={{ status: 'failed', reason: 'BAD_CHECKSUM' }}
+        mobile={false}
+        resume
+        onPlay={noop}
+        onFresh={noop}
+        onDismiss={noop}
+      />,
+    )
+    expect(html).toContain(m.failedResume)
+    expect(html).not.toContain(m.failedStandard)
+  })
+
   it('スマホ: 遊べない案内と、URL のコピー。遊ぶボタンはない', () => {
     const html = renderToStaticMarkup(
       <TakeHomeEntry result={restored} mobile onPlay={noop} onFresh={noop} onDismiss={noop} />,

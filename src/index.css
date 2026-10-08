@@ -1227,6 +1227,14 @@ main.flow {
   margin: 0 auto;
 }
 
+.takehome__summary {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 2rem;
+  align-items: start;
+  justify-content: start;
+}
+
 .takehome__actions {
   display: grid;
   gap: 0.6rem;
@@ -1234,6 +1242,10 @@ main.flow {
 }
 
 @media (max-width: 767px) {
+  .takehome__summary {
+    grid-template-columns: 1fr;
+  }
+
   .end__body {
     grid-template-columns: 1fr;
   }
