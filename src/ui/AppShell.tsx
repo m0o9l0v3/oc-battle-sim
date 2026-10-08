@@ -24,6 +24,7 @@ import { EndScreen, MatchScreen, PrepScreen, RedesignScreen, StartScreen } from 
 import { PracticeScreen } from './PracticeScreen.tsx'
 import { useHostProgress } from './hostProgress.ts'
 import { useSession } from './session.ts'
+import { isMobileEnvironment, TakeHomeEntry } from './TakeHomeEntry.tsx'
 import { StageEditorScreen } from './StageEditorScreen.tsx'
 import { StageScreen } from './StageScreen.tsx'
 import { StatScreen } from './StatScreen.tsx'

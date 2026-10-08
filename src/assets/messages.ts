@@ -213,9 +213,38 @@ export const messages = {
       title: 'おつかれさま！',
       lead: 'すうじを かえると、なにが かわったかな？',
       yours: 'きみの ファイター',
-      qrNote: 'もちかえりの QR は、これから つくるよ',
+      qrTitle: 'うちに もちかえろう',
+      qrLead: 'スマホで QR を よみとると、きみの ファイターと ステージが もどるよ',
+      qrAlt: 'もちかえり用の QR コード',
+      urlLabel: 'QRが よめないときは、この アドレスを ひらいてね',
+      qrNameNote: 'なまえは QRに はいるよ。ほんとうの なまえは いれないでね',
+      qrShareNote: 'QRや アドレスを ひとに みせると、なまえが みえるよ',
+      qrFailed: 'QRを つくれなかったよ。スタッフに つたえてね',
       reset: 'つぎの ひとへ（スタッフ）',
     },
+  },
+  /** 持ち帰りの設定の復元（take-home-share.md §9） */
+  takeHome: {
+    title: 'もちかえった せってい',
+    lead: 'QRから ファイターと ステージが もどったよ',
+    stage: 'ステージ',
+    playTwo: 'ふたりで あそぶ',
+    playTwoNote: '1つの キーボードを ふたりで つかうよ。2P は ひょうじゅんの ファイター',
+    fresh: 'はじめから つくる',
+    mobileTitle: 'パソコンで ひらいてね',
+    mobileBody: 'スマートフォンでは まだ あそべません。パソコンで ひらいてね',
+    copy: 'アドレスを コピー',
+    copied: 'コピーしたよ',
+    copyHint: 'アドレスを パソコンに おくってね',
+    failedTitle: 'よみこめなかったよ',
+    failedBody: (reason: string) =>
+      reason === 'UNKNOWN_VERSION'
+        ? 'あたらしい バージョンの QR かも しれないよ。ページを ひらきなおしてね'
+        : 'もちかえった せっていを よみこめなかったよ。QRを もういちど よみとってね',
+    failedStandard: 'このまま ひょうじゅんの ファイターで あそぶ',
+    failedResume: 'まえの つづきから あそぶ',
+    previewLabel: (name: string) => `${name}の すがた`,
+    failedNote: 'ひょうじゅんの ファイターで はじめられるよ',
   },
   /** Battle Report（S08）。結果と判断材料（数字）を、事実として示す。評価・指示の言葉を使わない（battle-report.md §8） */
   battleReport: {

@@ -6,14 +6,17 @@ import { validateConfig } from '../fighter/index.ts'
 import {
   MAX_MATCHES,
   SESSION_STORAGE_KEY,
+  type CharacterConfig,
   type MatchOutcome,
   type MatchRecord,
   type ScreenId,
   type SessionData,
   type SessionSnapshot,
+  type StageData,
 } from '../model/index.ts'
 import { isPlayerMetrics } from '../report/index.ts'
 import { validateStage } from '../stage/index.ts'
+import { decodeTakeHome, type DecodeFailure } from '../share/index.ts'
 import { restoreScreen } from './flow.ts'
 import { sessionFromData, type Session } from './state.ts'
 
@@ -217,7 +220,12 @@ export type BootResult = {
  * なければ、保存を読んで、検証に通れば復元（対戦中だった場合は S06 から）。通らなければ、S01 から。
  * 親機の sessionId との照合は、取得できてから（sync.ts）
  */
-export function boot(repo: SessionRepository, search: string, fresh: () => Session): BootResult {
+export function boot(
+  repo: SessionRepository,
+  search: string,
+  fresh: () => Session,
+  hash = '',
+): BootResult {
   if (hasResetFlag(search)) {
     repo.clear()
     return { session: fresh(), resetDone: true, sessionId: null, restored: false }
