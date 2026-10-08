@@ -13,7 +13,7 @@ import { ReplaySource } from '../input/replay.ts'
 import type { Stats } from '../model/index.ts'
 import { presetStage } from '../stage/presets.ts'
 import { createBot } from './balance.ts'
-import type { PlayerInput } from './input.ts'
+import { NO_INPUT, type PlayerInput } from './input.ts'
 import {
   createMatchContext,
   createMatchState,
@@ -151,5 +151,89 @@ describe('描画は、試合の結果を変えない（animation.md の受入条
     })
     expect(withAnim.final).toEqual(rec.final)
     expect(withAnim.events).toEqual(rec.events)
+  })
+})
+
+/** 回帰の基準にする要約（コードを変えて、これが変わったら、理由を残して期待値を更新する） */
+const summarize = (rec: Recording) => ({
+  steps: rec.final.step,
+  outcome: rec.final.outcome,
+  stocks: rec.final.fighters.map((f) => f.stocks),
+  hits: count(rec.events, 'hit'),
+  kos: count(rec.events, 'ko'),
+  jumps: count(rec.events, 'jump'),
+})
+
+describe('回帰の基準（固定の記録）', () => {
+  it('R1: 標準設定どうし（シード 1）の要約', () => {
+    expect(summarize(record([DEFAULT_STATS, DEFAULT_STATS], 1))).toMatchInlineSnapshot(`
+      {
+        "hits": 65,
+        "jumps": 56,
+        "kos": 3,
+        "outcome": {
+          "reason": "timeup_stocks",
+          "winner": "p2",
+        },
+        "steps": 5760,
+        "stocks": [
+          1,
+          2,
+        ],
+      }
+    `)
+  })
+
+  it('R4: 攻撃8/防御2 どうし（シード 3）の要約', () => {
+    const heavy: Stats = { attackPower: 8, defense: 2, jumpPower: 5, speed: 5 }
+    expect(summarize(record([heavy, heavy], 3))).toMatchInlineSnapshot(`
+      {
+        "hits": 60,
+        "jumps": 49,
+        "kos": 3,
+        "outcome": {
+          "reason": "timeup_stocks",
+          "winner": "p1",
+        },
+        "steps": 5760,
+        "stocks": [
+          2,
+          1,
+        ],
+      }
+    `)
+  })
+})
+
+describe('R4: 端での1回のヒットでは撃墜されない（recovery.md §7.3）', () => {
+  it('攻撃8の最初の一撃を、防御2が、足場の端で受けても、復帰を試みれば撃墜されない', () => {
+    const stats: [Stats, Stats] = [
+      { attackPower: 5, defense: 2, jumpPower: 5, speed: 5 },
+      { attackPower: 8, defense: 5, jumpPower: 5, speed: 5 },
+    ]
+    const ctx = createMatchContext(stage, stats, DEFAULT_MATCH_RULES)
+    let s = createMatchState(ctx)
+    for (let i = 0; i < ctx.steps.ready; i++) s = stepMatch(s, [NO_INPUT, NO_INPUT], ctx).state
+    // 床の左端（x = 4）に防御側（1P）、そのすぐ右に攻撃側（2P。左向き）
+    s = {
+      ...s,
+      fighters: [
+        { ...s.fighters[0], body: { ...s.fighters[0].body, x: 4.3, y: 10 }, facing: 1 },
+        { ...s.fighters[1], body: { ...s.fighters[1].body, x: 5.0, y: 10 }, facing: -1 },
+      ],
+    }
+    const events: MatchEvent[] = []
+    for (let i = 0; i < 300; i++) {
+      // 攻撃側は、左を向いて、最初に1回だけ攻撃。防御側は、ヒットのあと、床に戻るよう右へ動き、跳ぶ
+      const atk = { ...NO_INPUT, left: i === 0, attackPressed: i === 0 }
+      const def = { ...NO_INPUT, right: i > 10, jumpPressed: i > 10 && i % 20 === 0 }
+      const r = stepMatch(s, [def, atk], ctx)
+      s = r.state
+      events.push(...r.events)
+    }
+    expect(count(events, 'hit')).toBeGreaterThanOrEqual(1)
+    expect(events.find((e) => e.type === 'hit')).toMatchObject({ attacker: 1, victim: 0 })
+    expect(events.filter((e) => e.type === 'ko' && e.fighter === 0)).toHaveLength(0)
+    expect(s.fighters[0].stocks).toBe(3)
   })
 })

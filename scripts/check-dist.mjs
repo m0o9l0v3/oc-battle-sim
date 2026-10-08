@@ -20,7 +20,9 @@ function* walk(dir) {
 /** 文字列の中の外部参照（http(s):// と、スキームを省いた //host の形）のうち、許可されないもの */
 export function findExternalRefs(text) {
   const found = []
-  for (const m of text.matchAll(/(?:https?:)?\/\/[A-Za-z0-9.-]+\.[A-Za-z]{2,}[^\s"'`)<>]*/g)) {
+  // http(s):// は、どこにあっても。スキームを省いた //host は、引用符・括弧・= などの直後だけ（a//b のような式を除く）
+  const re = /(?:https?:\/\/|(?<=["'`(=,\s])\/\/(?=[A-Za-z0-9[]))[A-Za-z0-9.:[\]-]+[^\s"'`)<>]*/g
+  for (const m of text.matchAll(re)) {
     const url = m[0]
     if (!ALLOWED.some((a) => url.startsWith(a))) found.push(url)
   }
