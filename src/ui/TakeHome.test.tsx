@@ -144,6 +144,23 @@ describe('持ち帰りの入口', () => {
     expect(html).not.toContain(m.lead)
   })
 
+  it('スマホで失敗: 理由と、パソコンで開く案内を出す。遊ぶボタンは出さない', () => {
+    const html = renderToStaticMarkup(
+      <TakeHomeEntry
+        result={{ status: 'failed', reason: 'BAD_CHECKSUM' }}
+        mobile
+        onPlay={noop}
+        onFresh={noop}
+        onDismiss={noop}
+      />,
+    )
+    expect(html).toContain(m.failedBody('BAD_CHECKSUM'))
+    expect(html).toContain(m.mobileBody)
+    expect(html).not.toContain(m.failedStandard)
+    expect(html).not.toContain(m.failedResume)
+    expect(html).not.toContain('<button')
+  })
+
   it('知らない版: 専用の案内', () => {
     const html = renderToStaticMarkup(
       <TakeHomeEntry

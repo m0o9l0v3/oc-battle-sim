@@ -51,11 +51,16 @@ export function TakeHomeEntry({
       <div className="takehome">
         <h2>{m.failedTitle}</h2>
         <MessageBand kind="warn">{m.failedBody(result.reason)}</MessageBand>
-        {!mobile && !resume && <p className="practice__note">{m.failedNote}</p>}
-        {!mobile && (
-          <Button variant="main" onClick={onDismiss}>
-            {resume ? m.failedResume : m.failedStandard}
-          </Button>
+        {mobile ? (
+          // スマホでは遊べないので、標準で始めるボタンは出さず、PC で開く案内を出す（§9.3）
+          <MessageBand kind="info">{m.mobileBody}</MessageBand>
+        ) : (
+          <>
+            {!resume && <p className="practice__note">{m.failedNote}</p>}
+            <Button variant="main" onClick={onDismiss}>
+              {resume ? m.failedResume : m.failedStandard}
+            </Button>
+          </>
         )}
       </div>
     )
