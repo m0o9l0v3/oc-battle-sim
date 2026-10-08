@@ -203,22 +203,35 @@ export function stripResetFlag(search: string): string {
   return rest.length > 0 ? `?${rest.join('&')}` : ''
 }
 
-export type BootResult = { session: Session; resetDone: boolean }
+export type BootResult = {
+  session: Session
+  resetDone: boolean
+  /** 保存にあった、親機の sessionId（なければ null） */
+  sessionId: string | null
+  /** 保存から復元したか */
+  restored: boolean
+}
 
 /**
  * 起動時の処理（data-model.md §6.4）。`?reset` があれば、破棄して S01 から。
  * なければ、保存を読んで、検証に通れば復元（対戦中だった場合は S06 から）。通らなければ、S01 から。
+ * 親機の sessionId との照合は、取得できてから（sync.ts）
  */
 export function boot(repo: SessionRepository, search: string, fresh: () => Session): BootResult {
   if (hasResetFlag(search)) {
     repo.clear()
-    return { session: fresh(), resetDone: true }
+    return { session: fresh(), resetDone: true, sessionId: null, restored: false }
   }
   const snap = repo.load()
   if (!snap) {
     // 保存があっても壊れていたら、捨てる（壊れたデータを残さない）
     repo.clear()
-    return { session: fresh(), resetDone: false }
+    return { session: fresh(), resetDone: false, sessionId: null, restored: false }
   }
-  return { session: sessionFromData(snap.data), resetDone: false }
+  return {
+    session: sessionFromData(snap.data),
+    resetDone: false,
+    sessionId: snap.sessionId,
+    restored: true,
+  }
 }

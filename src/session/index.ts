@@ -1,3 +1,5 @@
 export * from './flow.ts'
+export * from './gate.ts'
 export * from './persist.ts'
 export * from './state.ts'
+export * from './sync.ts'

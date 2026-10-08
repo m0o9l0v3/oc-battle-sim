@@ -1,7 +1,8 @@
 // セッションのストア（useReducer）と、保存先（localStorage）の接続。仕様: docs/08-architecture/frontend.md §9.2
-import { useEffect, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import {
   boot,
+  syncSessionId,
   createRepository,
   createSession,
   reduceFlow,
@@ -9,8 +10,10 @@ import {
   toSnapshot,
   type FlowAction,
   type Session,
+  type HostBinding,
   type SessionRepository,
   type StorageLike,
+  type SyncDecision,
 } from '../session/index.ts'
 
 /** ブラウザの localStorage。使えない環境（無効化、サーバー側の描画）では undefined */
@@ -33,14 +36,19 @@ export function useSession(repo?: SessionRepository) {
   // 保存先は、最初に決めたものを使い続ける（再描画で、作り直さない）
   const [repository] = useState<SessionRepository>(() => repo ?? browserRepository())
   const repoRef = useRef(repository)
+  const [booted] = useState(() =>
+    boot(repository, typeof window !== 'undefined' ? window.location.search : '', createSession),
+  )
   const [session, dispatch] = useReducer(
     (s: Session, a: FlowAction) => reduceFlow(s, a),
-    undefined,
-    () => {
-      const search = typeof window !== 'undefined' ? window.location.search : ''
-      return boot(repository, search, createSession).session
-    },
+    booted.session,
   )
+  // 親機の sessionId（保存と一緒に持つ。event-control.md §9.1）
+  const binding = useRef<HostBinding>({ sessionId: booted.sessionId, restored: booted.restored })
+  const sessionRef = useRef(session)
+  useEffect(() => {
+    sessionRef.current = session
+  }, [session])
 
   // `?reset` は、破棄したら、すぐ URL から取り除く（残すと、次の更新が、またリセットになる）
   useEffect(() => {
@@ -68,7 +76,7 @@ export function useSession(repo?: SessionRepository) {
     const save = () =>
       session.data.screen === 'S01'
         ? repoRef.current.clear()
-        : repoRef.current.save(toSnapshot(session))
+        : repoRef.current.save(toSnapshot(session, binding.current.sessionId))
     if (immediate) {
       save()
       return
@@ -77,5 +85,21 @@ export function useSession(repo?: SessionRepository) {
     return () => clearTimeout(t)
   }, [session])
 
-  return { session, dispatch }
+  /**
+   * 親機から取得した sessionId と照合する。'reset' のときは、呼び出した側が RESET を送る
+   * （全データを破棄して S01 へ。S01 は保存を残さないため、保存も消える）
+   */
+  const syncHost = useCallback((incoming: string): SyncDecision => {
+    const decision = syncSessionId(binding.current, sessionRef.current, incoming)
+    if (decision === 'keep') return decision
+    binding.current = { sessionId: incoming, restored: false }
+    const s = sessionRef.current
+    // 採用したら、すぐに保存へ書く（データと sessionId を、1 つの値で。data-model.md §6.2）
+    if (decision === 'adopt' && s.data.screen !== 'S01') {
+      repoRef.current.save(toSnapshot(s, incoming))
+    }
+    return decision
+  }, [])
+
+  return { session, dispatch, syncHost }
 }

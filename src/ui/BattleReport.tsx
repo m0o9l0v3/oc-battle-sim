@@ -153,13 +153,20 @@ export type BattleReportProps = {
   /** 直前の戦がある（2 戦目以降） */
   hasPreviousMatch: boolean
   onRedesign: () => void
+  /** 親機の進行で、再戦（S09 へ）に進めない理由 */
+  redesignBlocked?: string
 }
 
 /**
  * S08 Battle Report（battle-report.md §7）。勝敗と、振り返りの指標、そのとき使った能力値。
  * 結果と判断材料を、事実として示す。評価（よい・わるい）、点数・順位、改善の指示は、出さない。問いかけは、1つだけ
  */
-export function BattleReport({ record, hasPreviousMatch, onRedesign }: BattleReportProps) {
+export function BattleReport({
+  record,
+  hasPreviousMatch,
+  onRedesign,
+  redesignBlocked,
+}: BattleReportProps) {
   const { p1, p2 } = record
   const outcome = outcomeLine(record)
   return (
@@ -209,7 +216,12 @@ export function BattleReport({ record, hasPreviousMatch, onRedesign }: BattleRep
       )}
 
       <footer className="battle-report__footer">
-        <Button variant="main" onClick={onRedesign}>
+        <Button
+          variant="main"
+          onClick={onRedesign}
+          disabled={!!redesignBlocked}
+          reason={redesignBlocked ?? ''}
+        >
           {m.redesign}
         </Button>
       </footer>

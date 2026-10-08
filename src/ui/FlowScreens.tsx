@@ -16,7 +16,8 @@ import { Button, HudPanel, HudPlayer } from './components/index.ts'
 const m = messages.flow
 const sm = messages.stat
 
-export function StartScreen({ onStart }: { onStart: () => void }) {
+/** S01 スタート。親機の進行で「はじめる」を押せないときは、理由をボタンの近くに出す（ui-design.md §7.1） */
+export function StartScreen({ onStart, blocked }: { onStart: () => void; blocked?: string }) {
   return (
     <div className="flow-start">
       <h1>{m.start.title}</h1>
@@ -26,7 +27,7 @@ export function StartScreen({ onStart }: { onStart: () => void }) {
           <li key={t}>{t}</li>
         ))}
       </ol>
-      <Button variant="main" onClick={onStart}>
+      <Button variant="main" onClick={onStart} disabled={!!blocked} reason={blocked ?? ''}>
         {m.start.begin}
       </Button>
     </div>
@@ -169,18 +170,21 @@ export function RedesignScreen({
   onChangeP2,
   onRematch,
   onBack,
+  rematchBlocked,
 }: {
   session: Session
   onChangeP1: (c: CharacterConfig) => void
   onChangeP2: (c: CharacterConfig) => void
   onRematch: () => void
   onBack: () => void
+  /** 親機の進行で、再戦を始められない理由（再戦の受付の停止など。event-control.md §6.3） */
+  rematchBlocked?: string
 }) {
   const { p1, p2 } = session.data
   const last = session.data.matches.at(-1)
   const [foeOpen, setFoeOpen] = useState(false)
   const changed = !!last && statsChanged(p1, last.p1Config)
-  const ok = canRematch(session)
+  const ok = canRematch(session) && !rematchBlocked
   return (
     <div className="redesign">
       <h2>{m.redesign.title}</h2>
@@ -216,7 +220,7 @@ export function RedesignScreen({
         <div className="stat-screen__next">
           {/* 押せない理由は、ボタンの近くに出す */}
           <p className="stat-screen__reason" role="status">
-            {!changed ? m.redesign.mustChange : ''}
+            {rematchBlocked ?? (!changed ? m.redesign.mustChange : '')}
           </p>
           <Button variant="main" disabled={!ok} onClick={onRematch}>
             {m.redesign.rematch}

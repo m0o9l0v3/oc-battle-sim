@@ -1177,3 +1177,22 @@ main.flow {
   align-items: stretch;
   gap: 0.35rem;
 }
+
+/* --- 親機の進行（event-control.md §5.3、§12） --- */
+/* 段階の表示と、「もちかえる」ボタン（段階の表示の右。ui-design.md §7.0） */
+.flow__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.flow__top .step-bar {
+  flex: 1;
+}
+.flow[data-screen='S01'] .flow__top {
+  justify-content: flex-end;
+}
+/* 親機の進行で操作できない画面（表示のみ） */
+.flow__body[inert] {
+  opacity: 0.6;
+}
