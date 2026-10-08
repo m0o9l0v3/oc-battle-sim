@@ -1051,3 +1051,129 @@ main.flow {
   min-width: 6.5rem;
   line-height: 1.2;
 }
+
+/* 戦の比較（S11。comparison.md §5）。差は、中立の見せ方（変わった行を、◆ と太字、うすい背景で。よい・わるいに、色を使わない） */
+.compare__head {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+.compare__head h2,
+.compare__pick,
+.compare__same-look {
+  margin: 0;
+}
+.compare__pick select {
+  font: inherit;
+  font-size: var(--fs-note);
+  min-height: 40px;
+  border: var(--border) solid var(--c-border);
+  border-radius: 8px;
+  background: var(--c-surface);
+  color: var(--c-text);
+}
+.compare__same-look,
+.compare__notes,
+.compare__outcomes,
+.compare__none {
+  font-size: var(--fs-note);
+}
+/* 上: ① すうじ と ② すうじの ききめ（並べる）。下: ③ けっか と しあいで みた うごき */
+.compare__top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  align-items: start;
+}
+.compare__col {
+  min-width: 0;
+}
+.compare__h {
+  margin: 0.3rem 0 0.15rem;
+  font-size: var(--fs-note);
+  font-weight: 700;
+}
+.compare__h small {
+  font-weight: 400;
+}
+.compare__outcomes {
+  margin: 0 0 0.25rem;
+  padding-left: 1.2rem;
+  line-height: 1.2;
+}
+.compare__tables {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  align-items: start;
+}
+.compare .report-table {
+  width: 100%;
+  font-size: var(--fs-note);
+}
+.compare .report-table caption {
+  font-size: var(--fs-note);
+}
+.compare .report-table th,
+.compare .report-table td {
+  padding: 0.05rem 0.35rem;
+  line-height: 1.2;
+}
+.compare .report-table thead th {
+  white-space: nowrap;
+}
+/* ① は、能力値の名前を 1 行で。③ の、長い名前は、折り返す */
+.compare-table--stats tbody th {
+  white-space: nowrap;
+}
+.compare-table--results tbody th {
+  white-space: nowrap;
+  width: 14rem;
+}
+.compare__col .report-table:not(.compare-table--stats):not(.compare-table--results) tbody th {
+  white-space: normal;
+}
+.compare-row--changed th,
+.compare-row--changed td {
+  background: var(--c-selected-bg);
+  font-weight: 700;
+}
+.compare-row__pair {
+  white-space: nowrap;
+}
+.compare-row__delta {
+  white-space: nowrap;
+  text-align: right !important;
+  font-weight: 700;
+}
+.compare__arrow {
+  font-weight: 400;
+}
+.compare__foe {
+  margin-top: 0.25rem;
+  font-size: var(--fs-note);
+}
+.compare__notes {
+  margin: 0.25rem 0;
+  padding-left: 1.2rem;
+  line-height: 1.2;
+}
+
+/* 問いかけ（左）と、ボタン（右）を、同じ行に */
+.compare__end {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.compare__end .battle-report__question {
+  flex: 1;
+  margin: 0;
+}
+.compare__end .flow-footer {
+  margin: 0;
+  flex: none;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+}

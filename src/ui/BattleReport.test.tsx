@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { messages } from '../assets/index.ts'
 import { createDefaultConfig, DEFAULT_STATS } from '../fighter/index.ts'
 import type { MatchRecord, PlayerMetrics } from '../model/index.ts'
+import { findBannedWords } from '../report/index.ts'
 import { presetStage } from '../stage/index.ts'
 import { BattleReport, durationText, fmt, fmtOrDash } from './BattleReport.tsx'
 
@@ -155,22 +156,6 @@ describe('S08 Battle Report', () => {
 
 describe('表現のルール（battle-report.md §8）: 正解を押しつけない', () => {
   /** 使わない言葉（§8.2） */
-  const BANNED = [
-    'べき',
-    '正解',
-    'ベスト',
-    'おすすめ',
-    'オススメ',
-    'だめ',
-    'ダメ！',
-    'よわい',
-    'つよい',
-    'ざんねん',
-    'スコア',
-    'ランク',
-    'しっぱい',
-    'すごい',
-  ]
 
   /** Battle Report に出す、すべての文言（問いかけ・見出し・単位） */
   const texts = (): string[] => {
@@ -193,7 +178,7 @@ describe('表現のルール（battle-report.md §8）: 正解を押しつけな
   it('使わない言葉が、文言にない', () => {
     const all = texts()
     expect(all.length).toBeGreaterThan(30)
-    for (const t of all) for (const w of BANNED) expect(t, `${t}: ${w}`).not.toContain(w)
+    for (const t of all) expect(findBannedWords(t), t).toEqual([])
   })
 
   it('問いかけは、答えを決めない（「か」「？」で終わる）。1 つの能力値を、勧めない', () => {

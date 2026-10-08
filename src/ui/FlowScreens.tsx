@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react'
 import { messages } from '../assets/index.ts'
 import { resolveName, STAT_KEYS } from '../fighter/index.ts'
 import { DEFAULT_BINDINGS } from '../input/index.ts'
-import type { CharacterConfig, MatchRecord, Stats } from '../model/index.ts'
+import type { CharacterConfig, Stats } from '../model/index.ts'
 import { canRematch, statsChanged, type Session } from '../session/index.ts'
 import { keysLabel } from './keyLabels.ts'
 import { MatchCanvas, type MatchHud } from './MatchCanvas.tsx'
@@ -162,15 +162,6 @@ export function MatchScreen({
   )
 }
 
-function outcomeText(r: MatchRecord): string {
-  const { winner, reason } = r.outcome
-  const head =
-    winner === null
-      ? m.report.draw
-      : m.report.win(resolveName(winner === 'p1' ? r.p1Config.name : r.p2Config.name, winner))
-  return `${head}（${m.report.reasons[reason]}）`
-}
-
 /** S09 設定を変えて作り直す。直前の戦の値（まえ）を見ながら、能力値だけを変える */
 export function RedesignScreen({
   session,
@@ -231,56 +222,6 @@ export function RedesignScreen({
             {m.redesign.rematch}
           </Button>
         </div>
-      </footer>
-    </div>
-  )
-}
-
-/** S11 結果の比較（最小。本格的な比較は #39） */
-export function CompareScreen({
-  matches,
-  onRedesign,
-  onEnd,
-}: {
-  matches: MatchRecord[]
-  onRedesign: () => void
-  onEnd: () => void
-}) {
-  return (
-    <div className="compare">
-      <h2>{m.compare.title}</h2>
-      <table className="compare__table">
-        <thead>
-          <tr>
-            <th scope="col" />
-            {STAT_KEYS.map((k) => (
-              <th key={k} scope="col">
-                {sm.stats[k].label}
-              </th>
-            ))}
-            <th scope="col">{m.report.used}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {matches.map((r) => (
-            <tr key={r.matchNo}>
-              <th scope="row">{m.compare.match(r.matchNo)}</th>
-              {STAT_KEYS.map((k) => (
-                <td key={k}>{r.p1Config.stats[k]}</td>
-              ))}
-              <td>{outcomeText(r)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="practice__note">{m.compare.note}</p>
-      <footer className="flow-footer">
-        <Button variant="main" onClick={onRedesign}>
-          {m.compare.again}
-        </Button>
-        <Button variant="sub" onClick={onEnd}>
-          {m.compare.finish}
-        </Button>
       </footer>
     </div>
   )
