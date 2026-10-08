@@ -54,6 +54,7 @@ describe('画面の選択（S01〜S12）', () => {
     expect(markup).toContain('<kbd>A</kbd>')
     expect(markup).toContain('<kbd>スペース / F</kbd>')
     expect(markup).toContain('テンキーの 4 / ←')
+    expect(markup).toContain('<kbd>テンキーの 0 / テンキーの 5 / /</kbd>')
     expect(markup).toContain(m.prep.changeFoe)
   })
 

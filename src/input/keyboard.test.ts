@@ -33,14 +33,14 @@ describe('KeyboardInput: 1台で2人が同時に操作できる', () => {
     t.down('KeyA')
     t.down('KeyW')
     t.down('Numpad6')
-    t.down('Numpad5')
+    t.down('Numpad0')
     expect(t.s1()).toEqual({ left: true, right: false, jumpPressed: true, attackPressed: false })
     expect(t.s2()).toEqual({ left: false, right: true, jumpPressed: false, attackPressed: true })
   })
 
-  it('6 キー同時（1P: W D スペース、2P: 8 6 5）が、すべて取れる', () => {
+  it('6 キー同時（1P: W D スペース、2P: 8 6 0）が、すべて取れる', () => {
     const t = setup()
-    for (const k of ['KeyW', 'KeyD', 'Space', 'Numpad8', 'Numpad6', 'Numpad5']) t.down(k)
+    for (const k of ['KeyW', 'KeyD', 'Space', 'Numpad8', 'Numpad6', 'Numpad0']) t.down(k)
     expect(t.s1()).toEqual({ left: false, right: true, jumpPressed: true, attackPressed: true })
     expect(t.s2()).toEqual({ left: false, right: true, jumpPressed: true, attackPressed: true })
   })
@@ -52,6 +52,15 @@ describe('KeyboardInput: 1台で2人が同時に操作できる', () => {
     t.up('Space')
     t.down('KeyF')
     expect(t.s1().attackPressed).toBe(true)
+  })
+
+  it('2P の攻撃は、テンキーの 0 でも、補助の 5 でも出せる', () => {
+    const t = setup()
+    t.down('Numpad0')
+    expect(t.s2().attackPressed).toBe(true)
+    t.up('Numpad0')
+    t.down('Numpad5')
+    expect(t.s2().attackPressed).toBe(true)
   })
 
   it('テンキーなしの配置（← → ↑ /）でも、2P を操作できる', () => {

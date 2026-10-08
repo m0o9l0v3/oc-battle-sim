@@ -18,6 +18,7 @@ const ROWS: { label: string; keys: { code: string; text: string }[] }[] = [
       { code: 'Numpad4', text: '4' },
       { code: 'Numpad6', text: '6' },
       { code: 'Numpad8', text: '8' },
+      { code: 'Numpad0', text: '0' },
       { code: 'Numpad5', text: '5' },
       { code: 'ArrowLeft', text: '←' },
       { code: 'ArrowRight', text: '→' },
