@@ -27,7 +27,7 @@ const STATS = { ...DEFAULT_STATS }
 const RULES = { ...DEFAULT_MATCH_RULES, readySec: 1, endSec: 2 }
 
 /**
- * ファイターの描画とアニメーションの動作確認用（#29）。1P はキーボード（A D W F）、2P は簡易のボット。
+ * ファイターの描画とアニメーションの動作確認用（#29）。1P はキーボード（A D W スペース）、2P は簡易のボット。
  * 実際の試合の更新（stepMatch）で動かすので、7つの状態が、ゲームの状態に応じて切り替わる様子を確認できる。
  * 画面の遷移（S05、S07）は #34、#35 で作る
  */
@@ -97,7 +97,7 @@ export function FighterArena({ stage: stageData = DEMO_STAGE }: { stage?: StageD
 
   return (
     <>
-      <p>1P: A D（移動）/ W（ジャンプ）/ F（攻撃）。2P は簡易のボット。</p>
+      <p>1P: A D（移動）/ W（ジャンプ）/ スペース（攻撃）。2P は簡易のボット。</p>
       <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9' }}>
         <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
         {perfText && (

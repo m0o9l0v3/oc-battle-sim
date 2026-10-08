@@ -19,10 +19,10 @@ const html = (config: CharacterConfig = createDefaultConfig('p1')) =>
   )
 
 describe('S05 試しに動かす', () => {
-  it('操作説明が表示される（1P: A D / W / F）', () => {
+  it('操作説明が表示される（1P: A D / W / スペース）', () => {
     const markup = html()
     expect(markup).toContain(m.controls)
-    for (const key of ['A', 'D', 'W', 'F']) expect(markup).toContain(`<kbd>${key}</kbd>`)
+    for (const key of ['A', 'D', 'W', 'スペース / F']) expect(markup).toContain(`<kbd>${key}</kbd>`)
     for (const op of [m.left, m.right, m.jump, m.attack]) expect(markup).toContain(op)
     expect(markup).toContain(m.jumpNote)
   })

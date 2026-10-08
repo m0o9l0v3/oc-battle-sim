@@ -170,7 +170,7 @@ type SampleContext = {
 
 | ソース | 配置 | 内容 | マイルストーン |
 |---|---|---|---|
-| `KeyboardSource` | `input/` | `KeyboardEvent.code` で判定（1P: A D W F、2P: テンキー 4 6 8 5 と ← → ↑ /。pc-ui.md §4）。`keydown` を次のステップまでラッチ。`event.repeat` は無視。対戦に使うキーは `preventDefault`。1つのインスタンスが1Pと2Pの2つの `InputSource` を提供する（同じキーボードイベントを1か所で受けるため） | M2（MVP） |
+| `KeyboardSource` | `input/` | `KeyboardEvent.code` で判定（1P: A D W スペース（補助の F）、2P: テンキー 4 6 8 0（補助の 5）と ← → ↑ /。pc-ui.md §4）。`keydown` を次のステップまでラッチ。`event.repeat` は無視。対戦に使うキーは `preventDefault`。1つのインスタンスが1Pと2Pの2つの `InputSource` を提供する（同じキーボードイベントを1か所で受けるため） | M2（MVP） |
 | `VirtualPadSource` | `input/` | タッチ（Pointer Events）の仮想コントローラー。マルチタッチで移動と攻撃を同時に受ける。ダブルタップズームとスクロールを抑止 | M3 |
 | `CpuSource` | `cpu/`（`InputSource` を実装） | `observation` を読み、`PlayerInput` を返す。プレイヤーと**同じ入力の形・同じ物理・同じ能力値の規則**で動き、`MatchState` を書き換える手段を持たない（REQ-CPU-01） | M3 |
 | `ReplaySource` | `input/` | 記録した `PlayerInput` の列を再生する。テストと、バグの再現に使う | M2（テスト用） |
