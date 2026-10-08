@@ -63,13 +63,15 @@ describe('画面の選択（S01〜S12）', () => {
     expect(markup).toContain('data-screen="S07"')
   })
 
-  it('S08: 勝敗と、使った能力値。「設定を変えて再戦」', () => {
+  it('S08: 勝敗と、採用指標、使った能力値。「すうじを かえて もういちど」（実際の指標つきの記録）', () => {
     const markup = html(afterMatch1())
-    expect(markup).toContain(m.report.title(1))
-    expect(markup).toContain(m.report.win('ファイター'))
-    expect(markup).toContain(m.report.reasons.stocks)
-    expect(markup).toContain(m.report.used)
-    expect(markup).toContain(`>${m.report.redesign}<`)
+    expect(markup).toContain(messages.flow.report.title(1))
+    expect(markup).toContain(messages.flow.report.win('ファイター'))
+    expect(markup).toContain(messages.flow.report.reasons.stocks)
+    expect(markup).toContain(`>${messages.battleReport.redesign}<`)
+    // 指標のない記録（この画面のテストの記録）でも、使った能力値は、出る
+    expect(markup).toContain(messages.battleReport.noMetrics)
+    expect(markup).toContain(messages.stat.stats.attackPower.label)
   })
 
   it('S09: 変更がないと「再戦」は押せず、理由が出る。前の値が見える', () => {

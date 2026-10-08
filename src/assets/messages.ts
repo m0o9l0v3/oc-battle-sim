@@ -215,4 +215,58 @@ export const messages = {
       reset: 'つぎの ひとへ（スタッフ）',
     },
   },
+  /** Battle Report（S08）。結果と判断材料（数字）を、事実として示す。評価・指示の言葉を使わない（battle-report.md §8） */
+  battleReport: {
+    result: 'たいせんの けっか',
+    stocks: 'のこり ストック',
+    time: (min: number, sec: number) => (min > 0 ? `${min}ふん ${sec}びょう` : `${sec}びょう`),
+    players: { p1: '1P', p2: '2P' },
+    usedStats: 'つかった すうじ',
+    rows: {
+      dealt: 'あたえた ダメージ',
+      taken: 'うけた ダメージ',
+      kos: 'たおした かいすう',
+      deaths: 'たおされた かいすう',
+      max: 'いちばん ダメージが たまった とき',
+      recovery: 'もどれた / もどれなかった',
+    },
+    selfKos: (n: number) => `じぶんで おちた かいすう: ${n}`,
+    motion: 'すうじと うごき',
+    motionYours: 'あなたの すうじ',
+    confirmed: 'すうじから きまる',
+    observed: 'しあいで みた',
+    motionRows: {
+      attackPower: {
+        confirmed: '1かいの ダメージ',
+        observed: 'あてた かいすう',
+      },
+      defense: {
+        confirmed: (pct: number) => `${pct}%の とき ふっとぶ きょり`,
+        observed: 'ふっとんだ きょり',
+      },
+      jumpPower: {
+        confirmed: 'ジャンプの たかさ',
+        observed: 'ジャンプ / もどれた',
+      },
+      speed: {
+        confirmed: 'いどうの はやさ',
+        observed: 'うごいた きょり',
+      },
+    },
+    units: { percent: '%', times: 'かい', cell: 'セル', perSec: 'セル/びょう' },
+    foeMotion: '2P の すうじと うごき',
+    noMetrics: 'この たたかいの くわしい かずは、のこって いないよ',
+    redesign: 'すうじを かえて もういちど',
+    /** 問いかけ（答えを決めない。1つの能力値を勧めない。battle-report.md §8.3） */
+    questions: {
+      changed: 'かえた すうじは、どの うごきに あらわれたかな？',
+      selfKo: 'じぶんで おちた ことが あったね。どんな ばめんだった？',
+      recovery:
+        'ステージに もどれなかった ことが あったよ。ジャンプ力や はやさは どう かんけい するかな？',
+      tookMuch:
+        'うけた ダメージが おおかったよ。どんな ばめんで うけたかな？ ふっとんだ きょりは どうだった？',
+      dealtMuch: 'たくさん あたえられたね。こうげき力の ほかに、なにが かんけい したかな？',
+      default: 'どの すうじを ふやして、どの すうじを へらすと、うごきが かわるかな？',
+    },
+  },
 } as const
