@@ -63,6 +63,8 @@
 | `animation`（`render` の純粋な部分） | 状態の選び方（優先順位）が、ゲームの状態から決定的に決まる、補間の式、移動速度に応じた再生速度 | animation.md §6、§8 |
 | `model` | 型チェック（`tsc -b`）。型と、分野の仕様の項目が一致 | data-model.md §4 |
 
+**実装状況（#40）:** `*.test.ts(x)` に実装済み。リプレイテスト R1・R4 と「描画が結果を変えない」は `src/battle/replay.test.ts`、R2 は `match.test.ts`、R3 は `outcome.test.ts`、R5 は `match.test.ts`（`clockSkip`）、R6 は `control.test.ts`。`share`（#60）・`cpu`（#71・#72）は、モジュールの実装と同時にテストを追加する。
+
 **リプレイテスト（U）:** 次の場面について、入力の列と期待する最終状態・イベント列を、ファイルとして持つ（回帰の基準）。
 
 | # | 場面 | 確認すること |
@@ -371,6 +373,8 @@ Vitest + jsdom。画面は、Testing Library で操作する。
 
 - PR のたびに、`tsc -b`、`eslint`、`prettier --check`、`vitest run` を実行する。**失敗したら、マージできない**（#40 の完了条件。ブランチ保護の設定は、リポジトリの管理者が行う）。
 - 実行時間は、短く保つ（目安: 全体で数分以内）。遅いテスト（耐久など）は、CI から分け、手動またはリリース前に実行する。
+- 実行する順序: `npm run lint` → `format:check` → `npm test`（`vitest run`。`tsc -b` は `npm run build` の中で実行）→ `npm run build` → `npm run check:dist`（§5.3。ビルド成果物に外部の参照がないこと）。
+- **マージの条件:** CI のジョブ `check` が成功していること。これを必須にするブランチ保護（`main` への Require status checks）は、リポジトリの管理者が Settings → Branches で設定する（コードからは設定できない）。
 - カバレッジの数値目標は置かない（数字を満たすための、意味の薄いテストを避ける）。代わりに、§6 の割り当て表の条件が、テストとして存在することを、PR のレビューで確認する。
 
 ## 11. 例外・制約
@@ -394,4 +398,5 @@ Vitest + jsdom。画面は、Testing Library で操作する。
 
 | 日付 | 変更内容 | 理由 | 影響範囲 |
 |---|---|---|---|
+| 2026-10-08 | §5.1 に実装状況、§5.3 の外部参照の検査（`npm run check:dist`）と §10.1 の CI の順序・マージ条件を追記 | #40 の対応 | CI（`.github/workflows/ci.yml`）、`scripts/check-dist.mjs` |
 | 2026-10-05 | 初版 | #19 の対応。各分野の Acceptance Criteria を、確認の手段（U / C / M / P）に割り当て、60 FPS の計測方法・対象端末・合格基準（暫定）を定義 | #40（ユニットテストと CI）、#51（実機・性能検証）、#52（当日チェックリスト）、#20〜#39 の完了条件 |
