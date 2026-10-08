@@ -206,26 +206,19 @@ export function stripResetFlag(search: string): string {
   return rest.length > 0 ? `?${rest.join('&')}` : ''
 }
 
-/** URL のフラグメントから読み込んだ、持ち帰りの設定の結果（take-home-share.md §9） */
-export type TakeHomeImport =
-  | { status: 'restored'; character: CharacterConfig; stage: StageData }
-  | { status: 'failed'; reason: DecodeFailure }
-
 export type BootResult = {
   session: Session
   resetDone: boolean
-  /** URL に持ち帰りのデータがあったときだけ */
-  takeHome: TakeHomeImport | null
+  /** 保存にあった、親機の sessionId（なければ null） */
+  sessionId: string | null
+  /** 保存から復元したか */
+  restored: boolean
 }
-
-/** フラグメントが、空（または `#` だけ）か */
-const isEmptyFragment = (hash: string): boolean => hash === '' || hash === '#'
 
 /**
  * 起動時の処理（data-model.md §6.4）。`?reset` があれば、破棄して S01 から。
- * 次に、URL のフラグメントに持ち帰りのデータがあれば、復号する。成功したら、1P とステージを復元した S01 から始める
- * （保存は、S01 では残さない。先へ進んだときに保存される）。失敗したら、保存を使って（なければ S01 から）、失敗を返す。
- * どちらでもなければ、保存を読んで、検証に通れば復元（対戦中だった場合は S06 から）。通らなければ、S01 から。
+ * なければ、保存を読んで、検証に通れば復元（対戦中だった場合は S06 から）。通らなければ、S01 から。
+ * 親機の sessionId との照合は、取得できてから（sync.ts）
  */
 export function boot(
   repo: SessionRepository,
@@ -235,30 +228,18 @@ export function boot(
 ): BootResult {
   if (hasResetFlag(search)) {
     repo.clear()
-    return { session: fresh(), resetDone: true, takeHome: null }
-  }
-  let takeHome: TakeHomeImport | null = null
-  if (!isEmptyFragment(hash)) {
-    const r = decodeTakeHome(hash)
-    if (r.ok) {
-      const base = fresh()
-      const session: Session = {
-        ...base,
-        data: { ...base.data, p1: r.character, stage: r.stage, stagePresetId: null },
-      }
-      return {
-        session,
-        resetDone: false,
-        takeHome: { status: 'restored', character: r.character, stage: r.stage },
-      }
-    }
-    takeHome = { status: 'failed', reason: r.reason }
+    return { session: fresh(), resetDone: true, sessionId: null, restored: false }
   }
   const snap = repo.load()
   if (!snap) {
     // 保存があっても壊れていたら、捨てる（壊れたデータを残さない）
     repo.clear()
-    return { session: fresh(), resetDone: false, takeHome }
+    return { session: fresh(), resetDone: false, sessionId: null, restored: false }
   }
-  return { session: sessionFromData(snap.data), resetDone: false, takeHome }
+  return {
+    session: sessionFromData(snap.data),
+    resetDone: false,
+    sessionId: snap.sessionId,
+    restored: true,
+  }
 }

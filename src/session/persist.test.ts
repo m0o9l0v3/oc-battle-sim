@@ -371,4 +371,12 @@ describe('?reset（個別リセット）', () => {
     expect(r.resetDone).toBe(false)
     expect(r.session).toEqual(sessionFromData(s.data))
   })
+
+  it('親機の sessionId を、保存と一緒に持つ。復元したかどうかも返す（一斉リセットの照合に使う）', () => {
+    const repo = createRepository(new MemoryStorage())
+    expect(boot(repo, '', createSession)).toMatchObject({ sessionId: null, restored: false })
+    repo.save(toSnapshot(played(), 'turn-3'))
+    expect(boot(repo, '', createSession)).toMatchObject({ sessionId: 'turn-3', restored: true })
+    expect(boot(repo, '?reset', createSession)).toMatchObject({ sessionId: null, restored: false })
+  })
 })

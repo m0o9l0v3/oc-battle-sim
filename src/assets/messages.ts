@@ -149,6 +149,8 @@ export const messages = {
   },
   flow: {
     steps: ['つくる', 'ステージ', 'ためす', 'たいせん', 'ふりかえり'],
+    /** 「もちかえる」（親機のフェーズが SHARING・BUFFER の間。どの画面からでも S12 へ。event-control.md §5.3） */
+    takeHome: 'もちかえる',
     start: {
       title: 'ファイターラボ',
       lead: 'ファイターを つくって、ためして、なおそう！',

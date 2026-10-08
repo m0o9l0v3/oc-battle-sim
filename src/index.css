@@ -1178,75 +1178,21 @@ main.flow {
   gap: 0.35rem;
 }
 
-/* S12 の持ち帰り QR、持ち帰りの設定の入口（take-home-share.md） */
-.end__body {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2rem;
-  align-items: start;
-}
-
-.end__side {
-  display: grid;
+/* --- 親機の進行（event-control.md §5.3、§12） --- */
+/* 段階の表示と、「もちかえる」ボタン（段階の表示の右。ui-design.md §7.0） */
+.flow__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 1rem;
-  justify-items: start;
 }
-
-.end__qr {
-  display: grid;
-  gap: 0.4rem;
-  justify-items: start;
-  width: 360px;
+.flow__top .step-bar {
+  flex: 1;
 }
-
-.qr {
-  display: block;
-  max-width: 100%;
-  height: auto;
+.flow[data-screen='S01'] .flow__top {
+  justify-content: flex-end;
 }
-
-.end__url {
-  display: grid;
-  max-width: 360px;
-  gap: 0.2rem;
-  width: 100%;
-  font-size: var(--fs-note);
-}
-
-.end__url input {
-  font: inherit;
-  font-size: var(--fs-note);
-  width: 100%;
-  padding: 0.3rem;
-}
-
-.takehome {
-  display: grid;
-  gap: 0.8rem;
-  max-width: 720px;
-  margin: 0 auto;
-}
-
-.takehome__summary {
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: 2rem;
-  align-items: start;
-  justify-content: start;
-}
-
-.takehome__actions {
-  display: grid;
-  gap: 0.6rem;
-  justify-items: start;
-}
-
-@media (max-width: 767px) {
-  .takehome__summary {
-    grid-template-columns: 1fr;
-  }
-
-  .end__body {
-    grid-template-columns: 1fr;
-  }
+/* 親機の進行で操作できない画面（表示のみ） */
+.flow__body[inert] {
+  opacity: 0.6;
 }

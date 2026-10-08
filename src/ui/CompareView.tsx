@@ -178,23 +178,41 @@ export type CompareViewProps = {
   initialPair?: [number, number]
   onRedesign: () => void
   onEnd: () => void
+  /** 親機の進行で、もう一度 設計する（S09 へ）に進めない理由 */
+  redesignBlocked?: string
+  /** 親機の進行で、おわる（S12 へ）に進めない理由 */
+  endBlocked?: string
 }
 
 /**
  * S11 結果の比較（comparison.md）。①すうじ ②すうじの ききめ（確定）③けっか・しあいで みた うごき（観察）。
  * 結果と判断材料を、並べるだけ。原因を決めつけず、よい・わるいを判定せず、おすすめも出さない。問いかけは、1つだけ
  */
-export function CompareView({ matches, initialPair, onRedesign, onEnd }: CompareViewProps) {
+export function CompareView({
+  matches,
+  initialPair,
+  onRedesign,
+  onEnd,
+  redesignBlocked,
+  endBlocked,
+}: CompareViewProps) {
   const initial = initialPair ?? defaultPair(matches)
   const [sel, setSel] = useState<[number, number] | null>(initial)
   const pair = sel ? pickPair(matches, sel[0], sel[1]) : null
 
   const footer = (
     <footer className="flow-footer">
-      <Button variant="main" onClick={onRedesign}>
+      <Button
+        variant="main"
+        onClick={onRedesign}
+        disabled={!!redesignBlocked}
+        reason={redesignBlocked ?? ''}
+      >
         {messages.flow.compare.again}
       </Button>
-      <Button onClick={onEnd}>{messages.flow.compare.finish}</Button>
+      <Button onClick={onEnd} disabled={!!endBlocked} reason={endBlocked ?? ''}>
+        {messages.flow.compare.finish}
+      </Button>
     </footer>
   )
 
