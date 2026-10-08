@@ -59,10 +59,13 @@ function StatsTable({
   changes,
   caption,
   matchNos,
+  rightIsLatest,
 }: {
   changes: StatChange[]
   caption: string
   matchNos: [number, number]
+  /** 右の戦が、いま終わった戦（いちばん新しい戦）か。そうでなければ、「いま」を付けない */
+  rightIsLatest: boolean
 }) {
   return (
     <table className="report-table compare-table compare-table--stats">
@@ -72,7 +75,8 @@ function StatsTable({
           <th scope="col" />
           <th scope="col">{m.matchShort(matchNos[0])}</th>
           <th scope="col">
-            {m.matchShort(matchNos[1])}（{m.now}）
+            {m.matchShort(matchNos[1])}
+            {rightIsLatest ? `（${m.now}）` : ''}
           </th>
           <th scope="col">{m.changed}</th>
         </tr>
@@ -162,12 +166,16 @@ function resultsSame(view: ComparisonView): boolean {
   return (
     all.every((d) => d === 0 || d === null) &&
     all.some((d) => d === 0) &&
-    view.left.outcome.winner === view.right.outcome.winner
+    view.left.outcome.winner === view.right.outcome.winner &&
+    // 画面に出す、試合の長さの差も、同じ（長さが違うのに、「おなじ くらい」と言わない）
+    view.durationSec.before === view.durationSec.after
   )
 }
 
 export type CompareViewProps = {
   matches: MatchRecord[]
+  /** 最初に比べる 2 つの戦の番号。省略すると、直前の戦と、いま終わった戦 */
+  initialPair?: [number, number]
   onRedesign: () => void
   onEnd: () => void
 }
@@ -176,8 +184,8 @@ export type CompareViewProps = {
  * S11 結果の比較（comparison.md）。①すうじ ②すうじの ききめ（確定）③けっか・しあいで みた うごき（観察）。
  * 結果と判断材料を、並べるだけ。原因を決めつけず、よい・わるいを判定せず、おすすめも出さない。問いかけは、1つだけ
  */
-export function CompareView({ matches, onRedesign, onEnd }: CompareViewProps) {
-  const initial = defaultPair(matches)
+export function CompareView({ matches, initialPair, onRedesign, onEnd }: CompareViewProps) {
+  const initial = initialPair ?? defaultPair(matches)
   const [sel, setSel] = useState<[number, number] | null>(initial)
   const pair = sel ? pickPair(matches, sel[0], sel[1]) : null
 
@@ -202,6 +210,7 @@ export function CompareView({ matches, onRedesign, onEnd }: CompareViewProps) {
 
   const [leftRec, rightRec] = pair
   const view = compare(leftRec, rightRec)
+  const rightIsLatest = rightRec.matchNo === matches[matches.length - 1]?.matchNo
   const nos: [number, number] = [view.left.matchNo, view.right.matchNo]
   const select = (which: 0 | 1, value: number) => {
     // 同じ戦は、2 つに選べない（選んだら、もう一方を、別の戦にする）
@@ -275,13 +284,23 @@ export function CompareView({ matches, onRedesign, onEnd }: CompareViewProps) {
 
       <div className="compare__top">
         <div className="compare__col">
-          <StatsTable changes={view.p1StatChanges} caption={`1P ${m.stats}`} matchNos={nos} />
+          <StatsTable
+            changes={view.p1StatChanges}
+            caption={`1P ${m.stats}`}
+            matchNos={nos}
+            rightIsLatest={rightIsLatest}
+          />
           <details className="compare__foe">
             <summary>
               {view.p2Changed && <span aria-hidden="true">◆ </span>}
               {m.foeStats}
             </summary>
-            <StatsTable changes={view.p2StatChanges} caption={m.foeStats} matchNos={nos} />
+            <StatsTable
+              changes={view.p2StatChanges}
+              caption={m.foeStats}
+              matchNos={nos}
+              rightIsLatest={rightIsLatest}
+            />
           </details>
         </div>
 

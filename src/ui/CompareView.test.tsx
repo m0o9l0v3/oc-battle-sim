@@ -183,7 +183,28 @@ describe('注意（誤解を防ぐ）', () => {
   it('結果に違いがないときは、「けっかは おなじ くらい だったよ」（事実だけ）', () => {
     const same = [rec(1, S(5, 5, 5, 5)), rec(2, S(7, 3, 5, 5))]
     expect(html(same)).toContain(m.notes.resultsSame)
+    // 指標が同じでも、試合の長さが違うときは、「おなじ くらい」と言わない
+    const longer = [
+      rec(1, S(5, 5, 5, 5), { durationSec: 40 }),
+      rec(2, S(7, 3, 5, 5), { durationSec: 80 }),
+    ]
+    expect(html(longer)).not.toContain(m.notes.resultsSame)
+    expect(html(longer)).toContain(m.notes.durationDiffers(40, 80))
     expect(html(two())).not.toContain(m.notes.resultsSame)
+  })
+
+  it('「いま」は、いちばん新しい戦にだけ付く（古い 2 つの戦を選んだときは、付けない）', () => {
+    const three = [rec(1, S(5, 5, 5, 5)), rec(2, S(7, 3, 5, 5)), rec(3, S(6, 4, 5, 5))]
+    // 既定は 2 と 3: 3 が「いま」
+    expect(html(three)).toContain(`${m.matchShort(3)}（${m.now}）`)
+    // 古い 2 つ（1 と 2）を比べているとき: 「いま」は付けない
+    const old = renderToStaticMarkup(
+      <CompareView matches={three} initialPair={[1, 2]} onRedesign={() => {}} onEnd={() => {}} />,
+    )
+    expect(old).toContain(m.matchShort(2))
+    expect(old).not.toContain(`（${m.now}）`)
+    // 戦が 2 つだけなら、2 が「いま」
+    expect(html(three.slice(0, 2))).toContain(`${m.matchShort(2)}（${m.now}）`)
   })
 
   it('みためと ステージが同じときだけ、「おなじ」を出す。違うときは、警告に置き換える', () => {
