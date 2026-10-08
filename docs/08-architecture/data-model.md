@@ -53,7 +53,7 @@
                     ▲ 更新（再開）のときに読む（§6.4）
 
 SessionData ──▶ 持ち帰り用QR（#60。1P の CharacterConfig と StageData の部分）
-               ※ 保存形式とは別。QRの形式は #60 が決める
+               ※ 保存形式とは別。QRの形式は [take-home-share.md](../05-multiplayer/take-home-share.md)
 親機 ──▶ ProgressState（メモリのみ。sessionId だけを保存データに持つ）
 ```
 
