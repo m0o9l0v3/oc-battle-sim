@@ -6,3 +6,6 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# 親機サーバーの進行状態（server/store.ts）
+.host/

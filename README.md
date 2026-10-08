@@ -31,10 +31,21 @@ npm run format   # Prettier で整形
 | `stage`      | ステージデータ・検証・エディタ       |
 | `fighter`    | ファイター設定・描画・アニメーション |
 | `report`     | 対戦指標・Battle Report・比較        |
-| `net`        | 通信・ルーム                         |
+| `net`        | 親機との通信（進行状態の取得）       |
+| `progress`   | 親機の進行状態（フェーズ・リセット） |
 | `input`      | 入力抽象化                           |
 | `ui`         | 共通UI                               |
 | `assets`     | 画像などの素材                       |
+
+## 当日の親機サーバー
+
+会場では、親機PCのローカルサーバー（`server/`）が、アプリの配信と進行管理を行う。
+手順: [docs/01-experience/event-host.md](docs/01-experience/event-host.md)
+
+```bash
+npm run build    # BASE_PATH を指定せずにビルド
+npm run host     # 親機サーバー（既定のポートは 8080）
+```
 
 ## デプロイ
 

@@ -57,6 +57,7 @@ TypeScript + React + Vite のフロントエンドを、次の2つの世界に�
 | `src/report/` | core | 試合のイベント列から Battle Report と第1戦・再戦の比較を作る | 既存 |
 | `src/cpu/` | core | 簡易CPUの意思決定。盤面を読み、入力を返す（#72） | **新規** |
 | `src/share/` | core | 持ち帰りデータの符号化・復号（Base64URL、ビットづめ）、検証の呼び出し | **新規** |
+| `src/progress/` | core | 親機の進行状態の管理（フェーズの遷移、一斉リセット、再戦の受付）と、進行状態の検証。親機サーバー（`server/`）と参加者PCの両方が使う（[event-control.md](../01-experience/event-control.md)） | **新規**（#67） |
 | `src/input/` | adapter | `InputSource` の定義と実装（キーボード、仮想パッド、CPU、リプレイ） | 既存 |
 | `src/render/` | adapter | Canvas 2D の描画（ステージ、パーツ合成のファイター、エフェクト）、アニメーション | **新規** |
 | `src/engine/` | adapter | ゲームループ（固定ステップ + 上限付き積算）、`MatchRunner`、キャンバスのサイズ管理 | 既存 |
@@ -401,3 +402,4 @@ type ProgressState = { phase: Phase; sessionId: string; revision: number /* … 
 |---|---|---|---|
 | 2026-10-04 | 初版 | #17 の対応。通信対戦（REQ-NET-02）の取り下げを踏まえ、「ネットワーク対戦との切り分け」を、入力ソースの差し替え口として残す形にした | #20、#21、#22〜#24、#72、#18（保存方式）。src/ に `render/`、`cpu/`、`share/` を追加する |
 | 2026-10-05 | `model/` を追加（共通の型）。保存方式を data-model.md で確定 | #18 の対応 | data-model.md、src/model/ |
+| 2026-10-09 | §4.1 に `src/progress/`（core）を追加 | #67 の実装。親機サーバーと参加者PCで、進行状態の検証を共有するため | event-control.md、event-host.md |
