@@ -45,6 +45,8 @@ export type FlowAction =
   | { type: 'END' }
   /** 「もちかえる」（親機の指示。対戦中は、対戦が終わってから）。S12 へ */
   | { type: 'SHARE' }
+  /** 持ち帰りの設定を復元したあとの「ふたりで あそぶ」。S01 から S06 へ（take-home-share.md §9.2） */
+  | { type: 'IMPORT_PLAY' }
   /** リセット（どの画面からでも。対戦中も中断）。全データを破棄して S01 へ */
   | { type: 'RESET' }
 
@@ -148,6 +150,9 @@ export function reduceFlow(s: Session, a: FlowAction): Session {
       return screen === 'S07' || screen === 'S10' || screen === 'S12'
         ? s
         : go(s, 'S12', { returnToPractice: false })
+
+    case 'IMPORT_PLAY':
+      return screen === 'S01' && matchReady(s) ? go(s, 'S06') : s
 
     case 'START':
       return screen === 'S01' ? go(s, 'S02') : s

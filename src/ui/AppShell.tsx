@@ -8,6 +8,7 @@ import { StepBar } from './components/index.ts'
 import { EndScreen, MatchScreen, PrepScreen, RedesignScreen, StartScreen } from './FlowScreens.tsx'
 import { PracticeScreen } from './PracticeScreen.tsx'
 import { useSession } from './session.ts'
+import { isMobileEnvironment, TakeHomeEntry } from './TakeHomeEntry.tsx'
 import { StageEditorScreen } from './StageEditorScreen.tsx'
 import { StageScreen } from './StageScreen.tsx'
 import { StatScreen } from './StatScreen.tsx'
@@ -17,7 +18,10 @@ import { StatScreen } from './StatScreen.tsx'
  * 遷移の可否は reducer（session/flow.ts）が持つ。ここは、画面を選んで、操作を渡すだけ
  */
 export function AppShell({ repo }: { repo?: SessionRepository }) {
-  const { session, dispatch: baseDispatch } = useSession(repo)
+  const { session, dispatch: baseDispatch, takeHome } = useSession(repo)
+  // 持ち帰りの設定の入口。選ぶまで、S01 の前に出す（選んだら、URL のフラグメントを取り除く）
+  const [entry, setEntry] = useState(takeHome)
+  const [mobile] = useState(isMobileEnvironment)
   // リセットのたびに、画面の部品の状態（S04 のエディタなど）を、作り直す（前の参加者の作品を、次の参加者に見せない）
   const [generation, setGeneration] = useState(0)
   const dispatch = useCallback<Dispatch>(
@@ -27,6 +31,31 @@ export function AppShell({ repo }: { repo?: SessionRepository }) {
     },
     [baseDispatch],
   )
+  const leaveEntry = useCallback(() => {
+    setEntry(null)
+    if (typeof window !== 'undefined' && window.location.hash !== '') {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+    }
+  }, [])
+  // 失敗は、保存した途中の画面があっても、先に伝える（壊れた URL を、黙って無視しない）
+  if (entry && (entry.status === 'failed' || session.data.screen === 'S01')) {
+    return (
+      <TakeHomeEntry
+        result={entry}
+        mobile={mobile}
+        onPlay={() => {
+          dispatch({ type: 'IMPORT_PLAY' })
+          leaveEntry()
+        }}
+        onFresh={() => {
+          dispatch({ type: 'RESET' })
+          leaveEntry()
+        }}
+        onDismiss={leaveEntry}
+        resume={entry.status === 'failed' && session.data.screen !== 'S01'}
+      />
+    )
+  }
   return <Screens key={generation} session={session} dispatch={dispatch} />
 }
 
