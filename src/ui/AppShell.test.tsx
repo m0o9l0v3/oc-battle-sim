@@ -49,9 +49,10 @@ describe('画面の選択（S01〜S12）', () => {
     expect(prep).toMatch(/data-current="true"[^>]*>▶ たいせん/)
   })
 
-  it('S06: 1P・2P のキー配置が表示される（A D W F とテンキー）', () => {
+  it('S06: 1P・2P のキー配置が表示される（A D W スペース とテンキー）', () => {
     const markup = html(toS06())
     expect(markup).toContain('<kbd>A</kbd>')
+    expect(markup).toContain('<kbd>スペース / F</kbd>')
     expect(markup).toContain('テンキーの 4 / ←')
     expect(markup).toContain(m.prep.changeFoe)
   })

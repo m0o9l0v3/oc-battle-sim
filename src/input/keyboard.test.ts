@@ -38,11 +38,20 @@ describe('KeyboardInput: 1台で2人が同時に操作できる', () => {
     expect(t.s2()).toEqual({ left: false, right: true, jumpPressed: false, attackPressed: true })
   })
 
-  it('6 キー同時（1P: W D F、2P: 8 6 5）が、すべて取れる', () => {
+  it('6 キー同時（1P: W D スペース、2P: 8 6 5）が、すべて取れる', () => {
     const t = setup()
-    for (const k of ['KeyW', 'KeyD', 'KeyF', 'Numpad8', 'Numpad6', 'Numpad5']) t.down(k)
+    for (const k of ['KeyW', 'KeyD', 'Space', 'Numpad8', 'Numpad6', 'Numpad5']) t.down(k)
     expect(t.s1()).toEqual({ left: false, right: true, jumpPressed: true, attackPressed: true })
     expect(t.s2()).toEqual({ left: false, right: true, jumpPressed: true, attackPressed: true })
+  })
+
+  it('1P の攻撃は、スペースでも、補助の F でも出せる', () => {
+    const t = setup()
+    t.down('Space')
+    expect(t.s1().attackPressed).toBe(true)
+    t.up('Space')
+    t.down('KeyF')
+    expect(t.s1().attackPressed).toBe(true)
   })
 
   it('テンキーなしの配置（← → ↑ /）でも、2P を操作できる', () => {
@@ -81,8 +90,8 @@ describe('押している状態と、押した瞬間（エッジ）', () => {
 
   it('押して離すまでが、次のサンプルより前に終わっても、取りこぼさない（ラッチ）', () => {
     const t = setup()
-    t.down('KeyF')
-    t.up('KeyF')
+    t.down('Space')
+    t.up('Space')
     t.down('KeyA')
     t.up('KeyA')
     expect(t.s1()).toEqual({ left: true, right: false, jumpPressed: false, attackPressed: true })
@@ -122,6 +131,12 @@ describe('ブラウザとの付き合い', () => {
     const t = setup()
     expect(t.down('ArrowUp').defaultPrevented).toBe(true)
     expect(t.down('Slash').defaultPrevented).toBe(true)
+  })
+
+  it('スペースは、押す・離すの両方で preventDefault する（フォーカス中のボタンを押さない、スクロールしない）', () => {
+    const t = setup()
+    expect(t.down('Space', { target: { tagName: 'BUTTON' } }).defaultPrevented).toBe(true)
+    expect(t.up('Space').defaultPrevented).toBe(true)
   })
 
   it('Ctrl・Alt・Meta と一緒のときは、操作として扱わず、ブラウザのショートカットを妨げない', () => {

@@ -13,9 +13,14 @@ describe('keyLabel', () => {
     expect(keyLabel('F13')).toBe('F13')
   })
 
-  it('1P の 4 つの操作が、A D W F と表示される。2P は、テンキーと矢印の両方', () => {
+  it('1P の 4 つの操作が、A D W スペース（補助の F）と表示される。2P は、テンキーと矢印の両方', () => {
     const p1 = DEFAULT_BINDINGS.p1
-    expect([p1.left, p1.right, p1.jump, p1.attack].map(keysLabel)).toEqual(['A', 'D', 'W', 'F'])
+    expect([p1.left, p1.right, p1.jump, p1.attack].map(keysLabel)).toEqual([
+      'A',
+      'D',
+      'W',
+      'スペース / F',
+    ])
     expect(keysLabel(DEFAULT_BINDINGS.p2.left)).toBe('テンキーの 4 / ←')
   })
 })

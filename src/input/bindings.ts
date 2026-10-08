@@ -10,7 +10,8 @@ export type KeyBindings = { p1: KeyBinding; p2: KeyBinding }
 
 export const DEFAULT_BINDINGS: KeyBindings = {
   // 1P: キーボードの左側。Shift・Ctrl・Alt は使わない（固定キー機能・ショートカットとの衝突）
-  p1: { left: ['KeyA'], right: ['KeyD'], jump: ['KeyW'], attack: ['KeyF'] },
+  // 攻撃はスペース（親指）。F は、右へ移動（D）と同じ人差し指になるため、補助として残す
+  p1: { left: ['KeyA'], right: ['KeyD'], jump: ['KeyW'], attack: ['Space', 'KeyF'] },
   // 2P: テンキー（4 6 8 5）。テンキーがない家庭のキーボード用に、矢印の配置も同時に使える
   p2: {
     left: ['Numpad4', 'ArrowLeft'],

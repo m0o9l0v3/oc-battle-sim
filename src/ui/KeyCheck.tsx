@@ -8,6 +8,7 @@ const ROWS: { label: string; keys: { code: string; text: string }[] }[] = [
       { code: 'KeyA', text: 'A' },
       { code: 'KeyD', text: 'D' },
       { code: 'KeyW', text: 'W' },
+      { code: 'Space', text: 'スペース' },
       { code: 'KeyF', text: 'F' },
     ],
   },
