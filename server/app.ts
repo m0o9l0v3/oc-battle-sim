@@ -16,13 +16,14 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { extname, join, resolve, sep } from 'node:path'
 import {
   adminView,
-  applyCommand,
+  applyAction,
   COMMAND_LABELS,
   createHostProgress,
   formatRemaining,
-  isHostCommand,
   PHASE_LABELS,
+  readHostAction,
   toProgressState,
+  type HostAction,
   type HostProgress,
 } from '../src/progress/index.ts'
 import { createClientCounter } from './clients.ts'
@@ -129,6 +130,20 @@ function sameToken(given: string | null | undefined, expected: string): boolean 
   return a.length === b.length && timingSafeEqual(a, b)
 }
 
+const minutes = (ms: number) => `${ms / 60000}分`
+
+/** ログに出す、操作の名前 */
+function actionLabel(a: HostAction): string {
+  switch (a.type) {
+    case 'ADJUST_TIME':
+      return `時間の調整（${a.deltaMs > 0 ? '+' : '-'}${minutes(Math.abs(a.deltaMs))}）`
+    case 'SET_PLAN':
+      return `予定の変更（制作 ${minutes(a.plan.production)}・対戦 ${minutes(a.plan.battle)}・持ち帰り ${minutes(a.plan.sharing)}）`
+    default:
+      return COMMAND_LABELS[a.type]
+  }
+}
+
 export function createHostServer(options: HostServerOptions): HostServer {
   const now = options.now ?? Date.now
   const newSessionId = options.newSessionId ?? randomUUID
@@ -171,6 +186,7 @@ export function createHostServer(options: HostServerOptions): HostServer {
     return {
       ...view,
       remainingText: formatRemaining(view.remainingMs),
+      phaseRemainingText: formatRemaining(view.phaseRemainingMs),
       nextCommandLabel: COMMAND_LABELS[view.nextCommand],
       clients: clients.estimate(t),
       startedAt,
@@ -184,20 +200,21 @@ export function createHostServer(options: HostServerOptions): HostServer {
       discard(req)
       return sendJson(res, denied, { error: denied === 403 ? 'forbidden' : 'unauthorized' })
     }
-    const body = await readSmallJson(req)
-    const command =
-      typeof body === 'object' && body !== null ? (body as Record<string, unknown>).command : null
-    if (!isHostCommand(command)) return sendJson(res, 400, { error: 'invalid_command' })
+    const action = readHostAction(await readSmallJson(req))
+    if (!action) return sendJson(res, 400, { error: 'invalid_command' })
     // 一斉リセットは、必ず違う sessionId にする（同じだと、参加者PCが初期化されない）
     let id = progress.sessionId
-    if (command === 'RESET') while (id === progress.sessionId) id = newSessionId()
-    const r = applyCommand(progress, command, { now: now(), newSessionId: id })
+    if (action.type === 'RESET') while (id === progress.sessionId) id = newSessionId()
+    const r = applyAction(progress, action, { now: now(), newSessionId: id })
     if (!r.ok) return sendJson(res, 409, { error: r.error, ...status() })
+    const changed = r.progress !== progress
     progress = r.progress
-    store.save(progress)
-    log(
-      `[host] ${COMMAND_LABELS[command]} → ${PHASE_LABELS[progress.phase]}（再戦: ${progress.rematchOpen ? '受付中' : '停止中'}、revision ${progress.revision}）`,
-    )
+    if (changed) {
+      store.save(progress)
+      log(
+        `[host] ${actionLabel(action)} → ${PHASE_LABELS[progress.phase]}（${PHASE_LABELS[progress.phase]}の残り: ${formatRemaining(progress.phaseEndsAt === null ? null : progress.phaseEndsAt - now())}、ターンの残り: ${formatRemaining(progress.turnEndsAt === null ? null : progress.turnEndsAt - now())}、再戦: ${progress.rematchOpen ? '受付中' : '停止中'}、revision ${progress.revision}）`,
+      )
+    }
     sendJson(res, 200, status())
   }
 

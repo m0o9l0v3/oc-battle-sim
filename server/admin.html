@@ -124,6 +124,53 @@
       code {
         color: #eef1f6;
       }
+      .label {
+        text-align: center;
+        font-size: 13px;
+        color: #b7c0d1;
+      }
+      .phase-remaining {
+        text-align: center;
+        font-size: 22px;
+        font-variant-numeric: tabular-nums;
+        margin: 0 0 12px;
+      }
+      .phase-remaining.over {
+        color: #ffb74d;
+      }
+      .adjust {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+      .plan {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 12px;
+        margin-top: 12px;
+        font-size: 14px;
+      }
+      .plan label {
+        display: grid;
+        gap: 4px;
+        color: #b7c0d1;
+      }
+      .plan input {
+        width: 5em;
+        font: inherit;
+        font-size: 16px;
+        padding: 8px;
+        border-radius: 6px;
+        border: 1px solid #333a4d;
+        background: #10131a;
+        color: #eef1f6;
+      }
+      .note {
+        font-size: 13px;
+        color: #b7c0d1;
+        margin: 8px 0 0;
+      }
     </style>
   </head>
   <body>
@@ -133,12 +180,19 @@
 
       <section class="card" aria-label="いまの進行">
         <div class="phase" id="phase">—<small id="phase-code"></small></div>
-        <div class="remaining" id="remaining" aria-label="残り時間">—</div>
+        <div class="label">ターンの残り</div>
+        <div class="remaining" id="remaining" aria-label="ターンの残り時間">—</div>
+        <div class="label" id="phase-remaining-label">いまのフェーズの残り</div>
+        <div class="phase-remaining" id="phase-remaining" aria-labelledby="phase-remaining-label">
+          —
+        </div>
         <dl>
           <dt>ターンの開始</dt>
           <dd id="started">—</dd>
           <dt>終了予定</dt>
           <dd id="ends">—</dd>
+          <dt>いまのフェーズの終了予定</dt>
+          <dd id="phase-ends">—</dd>
           <dt>再戦の受付</dt>
           <dd id="rematch">—</dd>
           <dt>次の操作</dt>
@@ -164,6 +218,31 @@
         </div>
       </section>
 
+      <section class="card" aria-label="時間の調整">
+        <div class="label">いまのフェーズの時間を調整（ターンの終了予定も同じだけ動きます）</div>
+        <div class="adjust" style="margin-top: 8px">
+          <button type="button" data-delta="-300000">−5分</button>
+          <button type="button" data-delta="-60000">−1分</button>
+          <button type="button" data-delta="60000">＋1分</button>
+          <button type="button" data-delta="300000">＋5分</button>
+        </div>
+        <form class="plan" id="plan">
+          <label
+            >制作（分）<input type="number" name="production" min="1" max="60" step="1" required
+          /></label>
+          <label
+            >対戦（分）<input type="number" name="battle" min="1" max="60" step="1" required
+          /></label>
+          <label
+            >持ち帰り（分）<input type="number" name="sharing" min="1" max="60" step="1" required
+          /></label>
+          <button type="submit" id="plan-save">予定を変更</button>
+        </form>
+        <p class="note">
+          予定の変更は、いまのフェーズにもすぐ反映されます（開始からの長さとして計算）。次のターン以降も、この予定を使います。
+        </p>
+      </section>
+
       <section class="card" aria-label="一斉リセット">
         <button type="button" id="reset" data-command="RESET">
           一斉リセット（全台を S01 に戻す）
@@ -182,8 +261,18 @@
       const token = new URLSearchParams(location.search).get('token') || ''
       const $ = (id) => document.getElementById(id)
       const buttons = Array.from(document.querySelectorAll('button[data-command]'))
+      const adjustButtons = Array.from(document.querySelectorAll('button[data-delta]'))
+      const planForm = $('plan')
+      const PLAN_KEYS = ['production', 'battle', 'sharing']
+      const PHASE_TIMERS = {
+        PRODUCTION: ['制作', 'production'],
+        BATTLE: ['対戦', 'battle'],
+        SHARING: ['持ち帰り', 'sharing'],
+      }
       let busy = false
       let latest = null
+      // 予定の入力中は、定期的な表示の更新で、入力を上書きしない
+      let planEditing = false
 
       const clock = (ms) =>
         ms === null ? '—' : new Date(ms).toLocaleTimeString('ja-JP', { hour12: false })
@@ -196,6 +285,21 @@
         $('remaining').classList.toggle('over', s.remainingMs !== null && s.remainingMs < 0)
         $('started').textContent = clock(s.turnStartedAt)
         $('ends').textContent = clock(s.turnEndsAt)
+        $('phase-ends').textContent = clock(s.phaseEndsAt)
+        const timer = PHASE_TIMERS[s.phase]
+        $('phase-remaining-label').textContent = timer
+          ? `${timer[0]}の残り（予定 ${s.plan[timer[1]] / 60000}分）`
+          : 'いまのフェーズの残り'
+        $('phase-remaining').textContent = s.phaseRemainingText
+        $('phase-remaining').classList.toggle(
+          'over',
+          s.phaseRemainingMs !== null && s.phaseRemainingMs <= 0,
+        )
+        for (const b of adjustButtons) b.disabled = busy || !s.canAdjustTime
+        $('plan-save').disabled = busy
+        if (!planEditing) {
+          for (const k of PLAN_KEYS) planForm.elements[k].value = String(s.plan[k] / 60000)
+        }
         $('rematch').textContent = s.rematchOpen ? '受付中' : '停止中'
         $('rematch').className = s.rematchOpen ? 'ok' : 'ng'
         $('next').textContent = s.nextCommandLabel
@@ -207,6 +311,9 @@
           b.disabled = busy || !s.commands[c]
           b.classList.toggle('next', c === s.nextCommand)
         }
+        // 制作中の「持ち帰り開始」は、対戦を飛ばす（予定の時間までに終わらないとき。§7.5）
+        document.querySelector('[data-command="START_SHARING"]').textContent =
+          s.phase === 'PRODUCTION' ? '持ち帰り開始（対戦を飛ばす）' : '持ち帰り開始'
       }
 
       function setServer(ok) {
@@ -241,10 +348,17 @@
         }
       }
 
-      async function send(command) {
+      async function send(command, extra) {
         if (command === 'RESET') {
           const ok = confirm(
             '一斉リセットします。全台の参加者PCが、S01（はじめ）に戻り、いまの組のデータは消えます。よろしいですか？',
+          )
+          if (!ok) return
+        }
+        // 通常の進行は確認しないが、対戦を飛ばすときだけ確認する
+        if (command === 'START_SHARING' && latest && latest.phase === 'PRODUCTION') {
+          const ok = confirm(
+            '対戦の時間を飛ばして、持ち帰りに進みます。参加者PCは、設定の変更や新しい対戦ができなくなります（いま対戦中の組は、終わるまで続けられます）。よろしいですか？',
           )
           if (!ok) return
         }
@@ -254,10 +368,12 @@
         try {
           const { res, body } = await api('/api/admin/command', {
             method: 'POST',
-            body: JSON.stringify({ command }),
+            body: JSON.stringify({ command, ...extra }),
           })
           if (res.status === 409)
             $('message').textContent = 'いまのフェーズでは、この操作はできません。'
+          else if (res.status === 400)
+            $('message').textContent = '入力が正しくありません（予定は 1〜60 分の整数）。'
           else if (!res.ok) $('message').textContent = `操作に失敗しました（${res.status}）`
           if (body && body.phase) render(body)
         } catch {
@@ -270,6 +386,19 @@
       }
 
       for (const b of buttons) b.addEventListener('click', () => send(b.dataset.command))
+      for (const b of adjustButtons)
+        b.addEventListener('click', () => send('ADJUST_TIME', { deltaMs: Number(b.dataset.delta) }))
+      planForm.addEventListener('focusin', () => (planEditing = true))
+      planForm.addEventListener('focusout', (e) => {
+        if (!planForm.contains(e.relatedTarget)) planEditing = false
+      })
+      planForm.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        const plan = {}
+        for (const k of PLAN_KEYS) plan[k] = Math.round(Number(planForm.elements[k].value) * 60000)
+        planEditing = false
+        await send('SET_PLAN', { plan })
+      })
       poll()
       setInterval(poll, 1000)
     </script>
