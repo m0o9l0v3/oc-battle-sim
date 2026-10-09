@@ -217,6 +217,16 @@ export function readHostAction(v: unknown): HostAction | null {
   return isHostCommand(command) ? { type: command } : null
 }
 
+/**
+ * 時間をずらしたあとの終了予定。延ばすときは、そのまま足す。
+ * 縮めるときは、いまより前にはしない（残り 0:00 まで）。ただし、すでに過ぎた終了予定は、動かさない
+ * （縮める操作で、終了予定が後ろへ動いて、ターンが延びないように）
+ */
+function adjustedEnd(end: number, deltaMs: number, now: number): number {
+  if (deltaMs > 0) return end + deltaMs
+  return Math.max(end + deltaMs, Math.min(end, now))
+}
+
 /** 管理画面のボタンを適用する（applyAction の短縮形） */
 export const applyCommand = (p: HostProgress, command: HostCommand, ctx: ApplyContext) =>
   applyAction(p, { type: command }, ctx)
@@ -231,8 +241,7 @@ export function applyAction(p: HostProgress, a: HostAction, ctx: ApplyContext): 
     case 'ADJUST_TIME': {
       if (p.phaseEndsAt === null || !isValidDelta(a.deltaMs))
         return { ok: false, error: 'not_allowed' }
-      // 縮めても、いまより前にはしない（残り 0:00 まで）
-      const phaseEndsAt = Math.max(ctx.now, p.phaseEndsAt + a.deltaMs)
+      const phaseEndsAt = adjustedEnd(p.phaseEndsAt, a.deltaMs, ctx.now)
       const moved = phaseEndsAt - p.phaseEndsAt
       if (moved === 0) return { ok: true, progress: p }
       return {
@@ -250,8 +259,9 @@ export function applyAction(p: HostProgress, a: HostAction, ctx: ApplyContext): 
       const next: HostProgress = { ...p, revision, plan: a.plan }
       const i = plannedIndex(p.phase)
       if (i < 0 || p.phaseStartedAt === null) return { ok: true, progress: next }
-      // いまのフェーズの終了予定を、新しい長さで決め直す（いまより前にはしない）
-      const phaseEndsAt = Math.max(ctx.now, p.phaseStartedAt + a.plan[PLANNED[i]!.key])
+      // いまのフェーズの終了予定を、フェーズに入った時刻からの、新しい長さで決め直す。
+      // 経過より短くしたら、超過として表示する（いまに合わせて、終了予定を後ろへ動かさない）
+      const phaseEndsAt = p.phaseStartedAt + a.plan[PLANNED[i]!.key]
       return {
         ok: true,
         progress: {
@@ -308,11 +318,21 @@ export function readHostProgress(v: unknown): HostProgress | null {
   if (!state) return null
   const { phase, sessionId, revision, turnStartedAt, turnEndsAt, rematchOpen } = state
   const r = v as Record<string, unknown>
-  const phaseStartedAt = r.phaseStartedAt ?? null
-  const phaseEndsAt = r.phaseEndsAt ?? null
-  if (!isTimeOrNull(phaseStartedAt) || !isTimeOrNull(phaseEndsAt)) return null
+  const savedStartedAt = r.phaseStartedAt ?? null
+  const savedEndsAt = r.phaseEndsAt ?? null
+  if (!isTimeOrNull(savedStartedAt) || !isTimeOrNull(savedEndsAt)) return null
+  let phaseStartedAt: number | null = savedStartedAt
+  let phaseEndsAt: number | null = savedEndsAt
   if (r.plan !== undefined && !isValidPlan(r.plan)) return null
-  const plan = r.plan === undefined ? DEFAULT_PLAN : (r.plan as TimePlan)
+  const saved = r.plan === undefined ? DEFAULT_PLAN : (r.plan as TimePlan)
+  const plan = { production: saved.production, battle: saved.battle, sharing: saved.sharing }
+  // フェーズの時刻がない保存（この機能より前）で、予定の長さがあるフェーズの途中なら、ターンの終了予定から見積もる
+  // （再起動の直後から、時間の調整と、予定の変更を使えるように）
+  const i = plannedIndex(phase)
+  if (i >= 0 && phaseEndsAt === null && turnEndsAt !== null) {
+    phaseEndsAt = PLANNED.slice(i + 1).reduce((t, x) => t - plan[x.key], turnEndsAt)
+    phaseStartedAt ??= phaseEndsAt - plan[PLANNED[i]!.key]
+  }
   return {
     phase,
     sessionId,
@@ -322,7 +342,7 @@ export function readHostProgress(v: unknown): HostProgress | null {
     rematchOpen,
     phaseStartedAt,
     phaseEndsAt,
-    plan: { production: plan.production, battle: plan.battle, sharing: plan.sharing },
+    plan,
   }
 }
 

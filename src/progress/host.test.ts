@@ -310,12 +310,39 @@ describe('時間の予定と調整（§7.5）', () => {
     expect(p.phaseEndsAt).toBe(T0 + 18 * MIN)
   })
 
-  it('いまのフェーズの経過より短くしたら、残り 0:00（いまより前にはしない）', () => {
+  it('いまのフェーズの経過より短くしたら、超過として扱う（いまに合わせて、終了予定を後ろへ動かさない）', () => {
     const p = must(
       applyAction(started(), { type: 'SET_PLAN', plan: plan(3, 10, 2) }, ctx(T0 + 5 * MIN)),
     )
-    expect(p.phaseEndsAt).toBe(T0 + 5 * MIN)
-    expect(p.turnEndsAt).toBe(T0 + 17 * MIN)
+    expect(p.phaseEndsAt).toBe(T0 + 3 * MIN)
+    expect(p.turnEndsAt).toBe(T0 + 15 * MIN)
+    expect(adminView(p, T0 + 5 * MIN).phaseRemainingMs).toBe(-2 * MIN)
+  })
+
+  it('予定の時刻を過ぎたフェーズで縮めても、終了予定は動かない（ターンが延びない）', () => {
+    // 制作の終了予定（7 分）から 3 分過ぎた
+    const p = started()
+    for (const deltaMs of [-MIN, -5 * MIN]) {
+      const q = must(applyAction(p, { type: 'ADJUST_TIME', deltaMs }, ctx(T0 + 10 * MIN)))
+      expect(q).toBe(p)
+      expect(q.turnEndsAt).toBe(T0 + 19 * MIN)
+    }
+  })
+
+  it('予定の時刻を過ぎたフェーズで延ばすと、押した分だけ延びる（いまに合わせて余分に延ばさない）', () => {
+    const p = must(
+      applyAction(started(), { type: 'ADJUST_TIME', deltaMs: MIN }, ctx(T0 + 10 * MIN)),
+    )
+    expect(p.phaseEndsAt).toBe(T0 + 8 * MIN)
+    expect(p.turnEndsAt).toBe(T0 + 20 * MIN)
+  })
+
+  it('予定の時刻の直前で縮めると、いまで止まる（それより前にはしない）', () => {
+    const p = must(
+      applyAction(started(), { type: 'ADJUST_TIME', deltaMs: -5 * MIN }, ctx(T0 + 6 * MIN)),
+    )
+    expect(p.phaseEndsAt).toBe(T0 + 6 * MIN)
+    expect(p.turnEndsAt).toBe(T0 + 18 * MIN)
   })
 
   it('準備中に予定を変えると、制作開始から使う。一斉リセットのあとも、引き継ぐ', () => {
@@ -398,13 +425,44 @@ describe('時間の予定と調整（§7.5）', () => {
       turnEndsAt: T0 + 19 * MIN,
       rematchOpen: true,
     }
-    expect(readHostProgress(old)).toEqual({
-      ...old,
-      phaseStartedAt: null,
-      phaseEndsAt: null,
-      plan: DEFAULT_PLAN,
-    })
     expect(readHostProgress({ ...old, plan: plan(0, 1, 1) })).toBeNull()
     expect(readHostProgress({ ...old, phaseEndsAt: 'soon' })).toBeNull()
+    // 予定の長さがないフェーズは、時刻を持たないまま
+    for (const phase of ['PREPARE', 'BUFFER', 'ENDED']) {
+      const q = readHostProgress({ ...old, phase })
+      expect(q).toMatchObject({ phaseStartedAt: null, phaseEndsAt: null, plan: DEFAULT_PLAN })
+    }
+  })
+
+  it('この機能より前の保存で、制作・対戦・持ち帰りの途中なら、ターンの終了予定からフェーズの時刻を見積もる', () => {
+    const old = {
+      sessionId: 'a',
+      revision: 2,
+      turnStartedAt: T0,
+      turnEndsAt: T0 + 19 * MIN,
+      rematchOpen: true,
+    }
+    const cases = [
+      ['PRODUCTION', T0, T0 + 7 * MIN],
+      ['BATTLE', T0 + 7 * MIN, T0 + 17 * MIN],
+      ['SHARING', T0 + 17 * MIN, T0 + 19 * MIN],
+    ] as const
+    for (const [phase, startedAt, endsAt] of cases) {
+      const p = readHostProgress({ ...old, phase })
+      expect(p, phase).toMatchObject({ phaseStartedAt: startedAt, phaseEndsAt: endsAt })
+      if (!p) continue
+      // 再起動の直後から、時間の調整と、予定の変更が使える
+      expect(adminView(p, T0).canAdjustTime).toBe(true)
+      const q = must(applyAction(p, { type: 'ADJUST_TIME', deltaMs: MIN }, ctx(T0)))
+      expect(q.phaseEndsAt).toBe(endsAt + MIN)
+      const r = must(applyAction(p, { type: 'SET_PLAN', plan: plan(8, 11, 3) }, ctx(T0)))
+      expect(r.phaseEndsAt).not.toBe(endsAt)
+    }
+  })
+
+  it('フェーズの時刻を持つ保存は、そのまま読む', () => {
+    const p = must(applyCommand(createHostProgress('a'), 'START_PRODUCTION', ctx(T0)))
+    const q = must(applyAction(p, { type: 'ADJUST_TIME', deltaMs: 2 * MIN }, ctx(T0)))
+    expect(readHostProgress(JSON.parse(JSON.stringify(q)))).toEqual(q)
   })
 })
