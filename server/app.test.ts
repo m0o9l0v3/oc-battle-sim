@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { readProgressState, type HostProgress } from '../src/progress/index.ts'
+import { DEFAULT_PLAN, readProgressState, type HostProgress } from '../src/progress/index.ts'
 import { createHostServer, isLoopback, type HostServerOptions } from './app.ts'
 import { createClientCounter } from './clients.ts'
 import { createFileStore, createMemoryStore } from './store.ts'
@@ -161,6 +161,54 @@ describe('管理操作（event-control.md §7）', () => {
     expect(h.getProgress().phase).toBe('PREPARE')
   })
 
+  it('時間の調整・予定の変更・制作中からの持ち帰り開始（§7.5）。配信する進行状態に、予定は含めない', async () => {
+    const h = await start()
+    const post = (body: unknown) =>
+      fetch(h.url('/api/admin/command'), {
+        method: 'POST',
+        headers: auth,
+        body: JSON.stringify(body),
+      })
+    // 準備中は、ずらせない
+    expect((await post({ command: 'ADJUST_TIME', deltaMs: 60_000 })).status).toBe(409)
+    await command(h.url('/api/admin/command'), 'START_PRODUCTION')
+    let s = await json(post({ command: 'ADJUST_TIME', deltaMs: 2 * 60_000 }))
+    expect(s).toMatchObject({
+      phaseRemainingText: '9:00',
+      remainingText: '21:00',
+      canAdjustTime: true,
+    })
+    s = await json(
+      post({
+        command: 'SET_PLAN',
+        plan: { production: 5 * 60_000, battle: 10 * 60_000, sharing: 3 * 60_000 },
+      }),
+    )
+    expect(s).toMatchObject({ phaseRemainingText: '5:00', remainingText: '18:00' })
+    expect(logs.some((l) => l.includes('予定の変更（制作 5分・対戦 10分・持ち帰り 3分）'))).toBe(
+      true,
+    )
+    expect(logs.some((l) => l.includes('時間の調整（+2分）'))).toBe(true)
+    // 制作中から、持ち帰りへ（対戦を飛ばす）
+    expect((await command(h.url('/api/admin/command'), 'START_SHARING')).status).toBe(200)
+    const p = await json(fetch(h.url('/api/progress')))
+    expect(p.phase).toBe('SHARING')
+    expect(Object.keys(p).sort()).toEqual(
+      [
+        'phase',
+        'rematchOpen',
+        'revision',
+        'serverTime',
+        'sessionId',
+        'turnEndsAt',
+        'turnStartedAt',
+      ].sort(),
+    )
+    // 形の違う調整は 400
+    expect((await post({ command: 'ADJUST_TIME', deltaMs: 0 })).status).toBe(400)
+    expect((await post({ command: 'SET_PLAN', plan: { production: 1 } })).status).toBe(400)
+  })
+
   it('本文が壊れている・大きすぎる・知らない操作は 400', async () => {
     const h = await start()
     const post = (body: string) =>
@@ -307,6 +355,9 @@ describe('親機の再起動（event-control.md §10）', () => {
       turnStartedAt: 1,
       turnEndsAt: 2,
       rematchOpen: true,
+      phaseStartedAt: 1,
+      phaseEndsAt: 2,
+      plan: DEFAULT_PLAN,
     }
     store.save(p)
     expect(store.load()).toEqual(p)
