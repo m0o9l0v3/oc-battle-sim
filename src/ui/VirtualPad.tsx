@@ -124,7 +124,13 @@ function PadButton({ action, mark, label }: { action: Action; mark: string; labe
       data-pressed="false"
       aria-label={label}
     >
-      {mark ? <span aria-hidden="true">{mark}</span> : label}
+      {mark ? (
+        <span className="vpad__face" aria-hidden="true">
+          {mark}
+        </span>
+      ) : (
+        <span className="vpad__face">{label}</span>
+      )}
     </div>
   )
 }

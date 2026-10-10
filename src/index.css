@@ -1228,7 +1228,8 @@ html.is-mobile-play body {
 }
 .mobile-play__back {
   position: absolute;
-  z-index: 2;
+  /* 縦持ちの案内（z-index: 3）より上。全画面で、回転の固定が効かないときも、ここから出られる */
+  z-index: 4;
   top: calc(env(safe-area-inset-top, 0px) + 8px);
   left: calc(env(safe-area-inset-left, 0px) + 16px);
   min-width: var(--min-target);
@@ -1352,13 +1353,18 @@ html.is-mobile-play body {
   color: var(--c-battle-text);
   font-size: 1rem;
   font-weight: 700;
-  transition:
-    transform 40ms,
-    background-color 40ms;
+  transition: background-color 40ms;
 }
+/* 押している見た目。ボタン自身は縮めない（指の下のボタンを決める範囲が、押している間に変わらないように） */
 .vpad__btn[data-pressed='true'] {
   background: var(--c-p1);
-  transform: scale(0.94);
+}
+.vpad__face {
+  pointer-events: none;
+  transition: transform 40ms;
+}
+.vpad__btn[data-pressed='true'] .vpad__face {
+  transform: scale(0.88);
 }
 /* ◀ と ▶ は、すき間なく並べる（すべらせて、向きを変えられる） */
 .vpad__btn--left,
