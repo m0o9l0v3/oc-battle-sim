@@ -171,13 +171,13 @@ type SampleContext = {
 | ソース | 配置 | 内容 | マイルストーン |
 |---|---|---|---|
 | `KeyboardSource` | `input/` | `KeyboardEvent.code` で判定（1P: A D W スペース（補助の F）、2P: テンキー 4 6 8 0（補助の 5）と ← → ↑ /。pc-ui.md §4）。`keydown` を次のステップまでラッチ。`event.repeat` は無視。対戦に使うキーは `preventDefault`。1つのインスタンスが1Pと2Pの2つの `InputSource` を提供する（同じキーボードイベントを1か所で受けるため） | M2（MVP） |
-| `VirtualPadSource` | `input/` | タッチ（Pointer Events）の仮想コントローラー。マルチタッチで移動と攻撃を同時に受ける。ダブルタップズームとスクロールを抑止 | M3 |
+| `VirtualPadInput` | `input/` | タッチ（Pointer Events）の仮想コントローラー。指（`pointerId`）ごとに押しているボタンを持ち、マルチタッチで移動と攻撃を同時に受ける。押した瞬間はキーボードと同じくラッチする。ダブルタップズームとスクロールの抑止は、`ui/` の画面側（mobile-ui.md §6、§7） | M3 |
 | `CpuSource` | `cpu/`（`InputSource` を実装） | `observation` を読み、`PlayerInput` を返す。プレイヤーと**同じ入力の形・同じ物理・同じ能力値の規則**で動き、`MatchState` を書き換える手段を持たない（REQ-CPU-01） | M3 |
 | `ReplaySource` | `input/` | 記録した `PlayerInput` の列を再生する。テストと、バグの再現に使う | M2（テスト用） |
 | `RemoteSource`（予約） | — | 実装しない。§8.1 | — |
 
 - `CpuSource` は `cpu/` に置くが、ブラウザに触れないので core 層に属する。`input/` が `cpu/` を import する必要はなく、`ui`（または `engine` の組み立て部分）が `InputSource` を作って `MatchRunner` に渡す。
-- 仮想パッドは、`ui/` の React コンポーネント（ボタンの描画）と、`input/` の `VirtualPadSource`（状態の保持）に分ける。コンポーネントは Pointer イベントを `VirtualPadSource` に渡すだけ。
+- 仮想パッドは、`ui/` の React コンポーネント（`VirtualPad`。ボタンの描画と、指の下のボタンを決める処理）と、`input/` の `VirtualPadInput`（状態の保持）に分ける。コンポーネントは Pointer イベントを、指の下のボタンに直して `VirtualPadInput` に渡すだけ。
 
 ### 5.4 キー確認画面（S06）
 
@@ -364,7 +364,7 @@ type ProgressState = { phase: Phase; sessionId: string; revision: number /* … 
 | 対象ブラウザ | PC は、デスクトップブラウザ。スマホは iOS Safari、Android Chrome（持ち帰り後） | NFR-04 |
 | 画面の大きさ | 基準 1280 × 720 の16:9、スクロールなし | ui-design.md §9 |
 | 文言・調整値 | `assets/` の設定ファイルに集約し、コード修正なしで直せる | ui-design.md §10、legacy-assessment.md §3.11 |
-| スマホ（MVP） | スマホで開くと「パソコンで ひらいてね」の案内と、復元した設定の表示にとどめる。その場合も、`ui` と core は同じものを使う | event-connection.md §5.4 |
+| スマホ | スマホで開くと、復元した設定を表示し、「スマホで あそぶ」から、横持ちの仮想コントローラーで遊べる。`ui` と core は PC と同じものを使い、入力ソースだけを差し替える | event-connection.md §5.4、mobile-ui.md |
 
 ## 11. テスト容易性
 
@@ -406,3 +406,4 @@ type ProgressState = { phase: Phase; sessionId: string; revision: number /* … 
 | 2026-10-05 | `model/` を追加（共通の型）。保存方式を data-model.md で確定 | #18 の対応 | data-model.md、src/model/ |
 | 2026-10-09 | §4.1 に `src/progress/`（core）を追加 | #67 の実装。親機サーバーと参加者PCで、進行状態の検証を共有するため | event-control.md、event-host.md |
 | 2026-10-09 | §8.2 に、親機連携の実装（#68）の場所を追記 | #68 の実装 | event-control.md、data-model.md |
+| 2026-10-10 | §5.3 の仮想パッドを `VirtualPadInput` として実装。§10 のスマホの扱いを更新 | #49 の実装 | mobile-ui.md、src/input/virtualPad.ts |

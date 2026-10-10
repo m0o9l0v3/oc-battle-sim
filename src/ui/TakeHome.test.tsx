@@ -119,14 +119,37 @@ describe('持ち帰りの入口', () => {
     expect(html).not.toContain(m.failedStandard)
   })
 
-  it('スマホ: 遊べない案内と、URL のコピー。遊ぶボタンはない', () => {
+  it('スマホ: 「スマホで あそぶ」と、パソコンへの案内、URL のコピー。2人で遊ぶボタンはない', () => {
     const html = renderToStaticMarkup(
-      <TakeHomeEntry result={restored} mobile onPlay={noop} onFresh={noop} onDismiss={noop} />,
+      <TakeHomeEntry
+        result={restored}
+        mobile
+        onPlay={noop}
+        onPlayMobile={noop}
+        onFresh={noop}
+        onDismiss={noop}
+      />,
     )
+    expect(html).toContain(m.playMobile)
     expect(html).toContain(m.mobileBody)
     expect(html).toContain('ゆうしゃ')
     expect(html).toContain('#t1.')
     expect(html).not.toContain(m.playTwo)
+    expect(html).not.toContain(m.fresh)
+  })
+
+  it('PC では「スマホで あそぶ」を出さない', () => {
+    const html = renderToStaticMarkup(
+      <TakeHomeEntry
+        result={restored}
+        mobile={false}
+        onPlay={noop}
+        onPlayMobile={noop}
+        onFresh={noop}
+        onDismiss={noop}
+      />,
+    )
+    expect(html).not.toContain(m.playMobile)
   })
 
   it('失敗: 理由と次の操作を示し、復元できたようには見せない', () => {

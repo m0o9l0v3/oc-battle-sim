@@ -232,7 +232,10 @@ export const messages = {
     playTwoNote: '1つの キーボードを ふたりで つかうよ。2P は ひょうじゅんの ファイター',
     fresh: 'はじめから つくる',
     mobileTitle: 'パソコンで ひらいてね',
-    mobileBody: 'スマートフォンでは まだ あそべません。パソコンで ひらいてね',
+    mobileBody:
+      'スマートフォンでは、この ファイターを うごかせるよ。つくりなおすときは、パソコンで ひらいてね',
+    playMobile: 'スマホで あそぶ',
+    playMobileNote: 'よこむきに して あそぶよ',
     copy: 'アドレスを コピー',
     copied: 'コピーしたよ',
     copyHint: 'アドレスを パソコンに おくってね',
@@ -267,6 +270,19 @@ export const messages = {
       note: 'QRや アドレスを ひとに みせると、なまえが みえるよ',
       number: '整理番号',
     },
+  },
+  /** スマホの対戦画面（docs/06-ui/mobile-ui.md §5） */
+  mobile: {
+    back: 'もどる',
+    canvasLabel: 'スマホの たいせんの がめん。あなたの ファイターと あいてが いるよ',
+    padLabel: 'そうさ ボタン',
+    left: 'ひだりへ',
+    right: 'みぎへ',
+    jump: 'ジャンプ',
+    attack: 'こうげき',
+    hint: '◀ ▶ で うごく。ジャンプ と こうげき を おしてね',
+    rotate: 'スマホを よこに してね',
+    foeDamage: (n: number) => `あいて ${n}%`,
   },
   /** Battle Report（S08）。結果と判断材料（数字）を、事実として示す。評価・指示の言葉を使わない（battle-report.md §8） */
   battleReport: {

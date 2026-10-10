@@ -12,7 +12,7 @@ import { Button, MessageBand } from './components/index.ts'
 
 const m = messages.takeHome
 
-/** スマホ（主な操作がタッチ、または画面が狭い）か。MVP ではスマホでは遊べない */
+/** スマホ（主な操作がタッチ、または画面が狭い）か。スマホでは、仮想コントローラーで遊ぶ（mobile-ui.md §4.1） */
 export function isMobileEnvironment(): boolean {
   try {
     return (
@@ -29,6 +29,7 @@ export function TakeHomeEntry({
   result,
   mobile,
   onPlay,
+  onPlayMobile,
   onFresh,
   onDismiss,
   resume = false,
@@ -37,6 +38,8 @@ export function TakeHomeEntry({
   mobile: boolean
   /** 「ふたりで あそぶ」 */
   onPlay: () => void
+  /** スマホ: 「スマホで あそぶ」（持ち帰った設定のまま、仮想コントローラーで） */
+  onPlayMobile?: () => void
   /** 「はじめから つくる」 */
   onFresh: () => void
   /** 失敗のとき: 標準の設定で始める */
@@ -76,6 +79,15 @@ export function TakeHomeEntry({
     <div className="takehome">
       <h2>{m.title}</h2>
       <p>{m.lead}</p>
+      {/* スマホの横持ちは、画面が低い。遊ぶボタンを、上に出す */}
+      {mobile && onPlayMobile && (
+        <div className="takehome__actions">
+          <Button variant="main" onClick={onPlayMobile}>
+            {m.playMobile}
+          </Button>
+          <p className="practice__note">{m.playMobileNote}</p>
+        </div>
+      )}
       <div className="takehome__summary">
         <section>
           <h3>{resolveName(character.name, 'p1')}</h3>

@@ -1287,3 +1287,204 @@ main.flow {
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
+
+/* --- スマホの対戦画面（docs/06-ui/mobile-ui.md §5、§7） --- */
+/* 対戦の画面の間だけ、ページのスクロール・引っぱって更新を止める */
+html.is-mobile-play,
+html.is-mobile-play body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.mobile-play {
+  position: fixed;
+  inset: 0;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--c-battle-bg);
+  color: var(--c-battle-text);
+  /* ダブルタップの拡大・ピンチ・スクロールを起こさない */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+}
+.mobile-play__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.mobile-play__back {
+  position: absolute;
+  /* 縦持ちの案内（z-index: 3）より上。全画面で、回転の固定が効かないときも、ここから出られる */
+  z-index: 4;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  left: calc(env(safe-area-inset-left, 0px) + 16px);
+  min-width: var(--min-target);
+  min-height: 44px;
+  padding: 0 1rem;
+  border: var(--border) solid var(--c-battle-text);
+  border-color: color-mix(in srgb, var(--c-battle-text) 60%, transparent);
+  border-radius: var(--radius);
+  background: var(--c-battle-panel);
+  background: color-mix(in srgb, var(--c-battle-panel) 80%, transparent);
+  color: var(--c-battle-text);
+  font: inherit;
+  font-size: 1rem;
+  touch-action: manipulation;
+}
+.mobile-play__hud {
+  position: absolute;
+  z-index: 1;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  margin: 0;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius);
+  background: var(--c-battle-panel);
+  background: color-mix(in srgb, var(--c-battle-panel) 80%, transparent);
+  font-size: 1rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+.mobile-play__hint {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius);
+  background: var(--c-battle-panel);
+  background: color-mix(in srgb, var(--c-battle-panel) 80%, transparent);
+  font-size: 0.9rem;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: mobile-hint 6s ease-in forwards;
+}
+@keyframes mobile-hint {
+  0%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+/* 縦持ちのときの案内（全面） */
+.mobile-play__rotate {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  background: var(--c-battle-bg);
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+}
+.mobile-play__rotate p {
+  margin: 0;
+}
+.mobile-play__phone {
+  width: 48px;
+  height: 84px;
+  border: 4px solid currentColor;
+  border-radius: 10px;
+  animation: mobile-rotate 2s ease-in-out infinite;
+}
+@keyframes mobile-rotate {
+  0%,
+  20% {
+    transform: rotate(0deg);
+  }
+  60%,
+  100% {
+    transform: rotate(90deg);
+  }
+}
+
+/* 仮想コントローラー: 画面の全面で指を受け取り、ボタンは左下と右下 */
+.vpad {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  touch-action: none;
+}
+.vpad__move,
+.vpad__act {
+  position: absolute;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+}
+.vpad__move {
+  left: calc(env(safe-area-inset-left, 0px) + 16px);
+  display: flex;
+}
+.vpad__act {
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  width: 172px;
+  height: 148px;
+}
+.vpad__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--c-battle-text);
+  border-color: color-mix(in srgb, var(--c-battle-text) 75%, transparent);
+  /* 半透明（対戦の画面が透けて見える）。color-mix が使えない版では、不透明 */
+  background: var(--c-battle-panel);
+  background: color-mix(in srgb, var(--c-battle-panel) 55%, transparent);
+  color: var(--c-battle-text);
+  font-size: 1rem;
+  font-weight: 700;
+  transition: background-color 40ms;
+}
+/* 押している見た目。ボタン自身は縮めない（指の下のボタンを決める範囲が、押している間に変わらないように） */
+.vpad__btn[data-pressed='true'] {
+  background: var(--c-p1);
+}
+.vpad__face {
+  pointer-events: none;
+  transition: transform 40ms;
+}
+.vpad__btn[data-pressed='true'] .vpad__face {
+  transform: scale(0.88);
+}
+/* ◀ と ▶ は、すき間なく並べる（すべらせて、向きを変えられる） */
+.vpad__btn--left,
+.vpad__btn--right {
+  width: 76px;
+  height: 76px;
+  font-size: 2rem;
+}
+.vpad__btn--left {
+  border-radius: 14px 0 0 14px;
+}
+.vpad__btn--right {
+  border-left-width: 1px;
+  border-radius: 0 14px 14px 0;
+}
+.vpad__btn--attack,
+.vpad__btn--jump {
+  position: absolute;
+  border-radius: 50%;
+}
+.vpad__btn--attack {
+  left: 0;
+  bottom: 0;
+  width: 84px;
+  height: 84px;
+}
+.vpad__btn--jump {
+  right: 0;
+  top: 0;
+  width: 72px;
+  height: 72px;
+}
