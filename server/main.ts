@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs'
 import { networkInterfaces } from 'node:os'
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
+import { PUBLIC_APP_URL } from '../src/share/index.ts'
 import { createHostServer } from './app.ts'
 import { createFileStore } from './store.ts'
 
@@ -27,7 +28,7 @@ function main() {
       state: { type: 'string', default: '.host/progress.json' },
       // 持ち帰りカードの学校ロゴ（take-home-print.md §8）
       logo: { type: 'string', default: 'server/assets/school-logo.jpg' },
-      // 持ち帰りURLの公開URL。アプリを VITE_PUBLIC_URL を付けてビルドしたときは、同じ値を渡す
+      // 持ち帰りURLの公開URL。既定は、環境変数 VITE_PUBLIC_URL（アプリのビルドと同じ）、なければアプリの既定
       'public-url': { type: 'string' },
     },
   })
@@ -38,6 +39,7 @@ function main() {
   }
   const addresses = lanAddresses()
   const participantUrls = addresses.map((a) => `http://${a}:${port}/`)
+  const publicUrl = values['public-url'] || process.env.VITE_PUBLIC_URL || PUBLIC_APP_URL
   const logoPath = resolve(values.logo)
   const hasLogo = existsSync(logoPath)
   const { server, adminToken } = createHostServer({
@@ -45,7 +47,7 @@ function main() {
     store: createFileStore(resolve(values.state)),
     participantUrls,
     logoPath: hasLogo ? logoPath : undefined,
-    publicUrl: values['public-url'],
+    publicUrl,
   })
 
   server.on('error', (e: NodeJS.ErrnoException) => {
@@ -77,6 +79,7 @@ function main() {
       '',
       '印刷ステーション（このPCでだけ開けます。--kiosk-printing を付けた Chrome / Edge で開く）:',
       `  http://localhost:${port}/print-station?token=${adminToken}`,
+      `  持ち帰りURLの公開URL: ${publicUrl}`,
       hasLogo
         ? `  学校ロゴ: ${logoPath}`
         : `  学校ロゴが見つかりません（ロゴなしで印刷します）: ${logoPath}`,

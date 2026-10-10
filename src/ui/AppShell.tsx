@@ -44,11 +44,11 @@ import { StatScreen } from './StatScreen.tsx'
 export function AppShell({
   repo,
   link,
-  sendPrint = sendPrintRequest,
+  sendPrint,
 }: {
   repo?: SessionRepository
   link?: HostLink
-  /** 持ち帰りカードの印刷の依頼（テストで差し替える） */
+  /** 持ち帰りカードの印刷の依頼（テストで差し替える。既定は Screens が決める） */
   sendPrint?: (takeHomeUrl: string) => Promise<PrintRequestResult>
 }) {
   const { session, dispatch: baseDispatch, syncHost, takeHome } = useSession(repo)

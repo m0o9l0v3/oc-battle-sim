@@ -69,6 +69,7 @@ export type HostServer = {
 
 const DEFAULT_ADMIN_HTML = join(import.meta.dirname, 'admin.html')
 const DEFAULT_PRINT_STATION_HTML = join(import.meta.dirname, 'print-station.html')
+const PRINT_STATION_JS = join(import.meta.dirname, 'print-station.js')
 
 const IMAGE_TYPES: Record<string, string> = {
   '.png': 'image/png',
@@ -78,8 +79,11 @@ const IMAGE_TYPES: Record<string, string> = {
   '.svg': 'image/svg+xml',
 }
 
-/** 管理画面からの要求の本文の上限。参加者のデータを受け付ける経路ではないため、小さくする */
-const MAX_ADMIN_BODY = 1024
+/**
+ * 要求の本文（JSON）の上限。管理操作と、参加者PCからの印刷の依頼（持ち帰りURL。最悪でも 193 バイト）だけが本文を持つ。
+ * どちらも小さいため、大きなデータを送られても、受け取らない
+ */
+const MAX_BODY = 1024
 
 export const isLoopback = (address: string | undefined): boolean =>
   address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1'
@@ -123,7 +127,7 @@ function sendText(res: ServerResponse, status: number, text: string) {
 /** 本文を読まずに捨てる（参加者PCからの本文は、受け取らない） */
 const discard = (req: IncomingMessage) => req.resume()
 
-/** 管理操作の本文（JSON）を読む。大きすぎる・壊れているときは null */
+/** 本文（JSON）を読む。大きすぎる・壊れているときは null */
 function readSmallJson(req: IncomingMessage): Promise<unknown> {
   return new Promise((done) => {
     const chunks: Buffer[] = []
@@ -131,7 +135,7 @@ function readSmallJson(req: IncomingMessage): Promise<unknown> {
     let tooLarge = false
     req.on('data', (chunk: Buffer) => {
       size += chunk.length
-      if (size > MAX_ADMIN_BODY) tooLarge = true
+      if (size > MAX_BODY) tooLarge = true
       else chunks.push(chunk)
     })
     req.on('end', () => {
@@ -260,6 +264,7 @@ export function createHostServer(options: HostServerOptions): HostServer {
     }
   }
 
+  let warnedPublicUrl = false
   /** 参加者PCからの印刷の依頼。持ち帰りの操作（share）が許されるフェーズだけ受け付ける */
   async function handlePrintJob(req: IncomingMessage, res: ServerResponse) {
     if (!permissionsOf(toProgressState(progress, now())).share) {
@@ -267,8 +272,18 @@ export function createHostServer(options: HostServerOptions): HostServer {
       return sendJson(res, 409, { error: 'not_allowed_now' })
     }
     const input = readPrintRequest(await readSmallJson(req), publicUrl)
-    if (!input) return sendJson(res, 400, { error: 'invalid_request' })
-    const r = printQueue.enqueue(input)
+    if (!input.ok) {
+      // 公開URLの食い違い（アプリのビルドと --public-url）は、設定の誤り。すべての依頼が断られるため、1 回だけ知らせる
+      // （名前を含むフラグメントは出さない。`#` より前だけ）
+      if (input.reason === 'public_url_mismatch' && !warnedPublicUrl) {
+        warnedPublicUrl = true
+        log(
+          `[host] 印刷の依頼の公開URLが、親機の設定と違います。アプリのビルドの VITE_PUBLIC_URL と、--public-url をそろえてください（依頼: ${JSON.stringify(input.base)}、親機: ${JSON.stringify(publicUrl)}）`,
+        )
+      }
+      return sendJson(res, 400, { error: 'invalid_request' })
+    }
+    const r = printQueue.enqueue(input.request)
     if (!r.ok) {
       log('[host] 印刷待ちが いっぱいのため、印刷の依頼を断りました')
       return sendJson(res, 503, { error: r.error })
@@ -421,7 +436,11 @@ export function createHostServer(options: HostServerOptions): HostServer {
       return sendJson(res, 200, { ...printQueue.summary(), logo: (await logoDataUri()) !== null })
     }
 
-    if (pathname === '/print-station' || pathname === '/print-station/sheet') {
+    if (
+      pathname === '/print-station' ||
+      pathname === '/print-station/sheet' ||
+      pathname === '/print-station/station.js'
+    ) {
       const denied = adminAuth(req, url.searchParams.get('token'))
       if (denied)
         return sendText(
@@ -434,6 +453,19 @@ export function createHostServer(options: HostServerOptions): HostServer {
           return sendHtml(res, await readFile(printStationHtmlPath))
         } catch {
           return sendText(res, 500, 'print-station.html を読めません')
+        }
+      }
+      if (pathname === '/print-station/station.js') {
+        try {
+          const js = await readFile(PRINT_STATION_JS)
+          res.writeHead(200, {
+            'Content-Type': 'text/javascript; charset=utf-8',
+            'Content-Length': js.length,
+            'Cache-Control': 'no-store',
+          })
+          return res.end(js)
+        } catch {
+          return sendText(res, 500, 'print-station.js を読めません')
         }
       }
       const job = printQueue.get(url.searchParams.get('id') ?? '')

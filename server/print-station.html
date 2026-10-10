@@ -6,7 +6,7 @@
     <meta name="referrer" content="no-referrer" />
     <title>印刷ステーション（親機）</title>
     <!-- 持ち帰りカードの印刷ステーション（take-home-print.md §9）。親機PCで開いたままにする。
-         印刷待ちを古い順に 1 件ずつ取り出し、隠した iframe に印刷シートを読み込んで印刷する。
+         印刷待ちを古い順に 1 件ずつ取り出し、隠した iframe に印刷シートを読み込んで印刷する（手順は print-station.js）。
          --kiosk-printing を付けた Chrome / Edge では、確認なしで既定のプリンタへ印刷される。
          参加者の名前・URL は、この画面に出さない（整理番号だけ） -->
     <style>
@@ -158,6 +158,11 @@
           を確認して、親機サーバーを起動し直してください）。
         </p>
         <p id="conn-warn" class="warn" hidden>親機サーバーにつながりません。</p>
+        <p id="print-failed" class="warn" role="alert" hidden>
+          整理番号
+          <b id="print-failed-number"></b>
+          を印刷できませんでした。自動印刷を止めました。プリンタと親機を確かめてから「再開する」を押してください（1分ほどで、もう一度印刷します）。
+        </p>
       </section>
 
       <section class="card">
@@ -196,37 +201,26 @@
     </main>
     <iframe id="sheet" title="印刷シート" tabindex="-1" aria-hidden="true"></iframe>
 
-    <script>
-      'use strict'
+    <script type="module">
+      // 印刷の手順は print-station.js（テストあり）。ここは、画面の表示だけ
       const token = new URLSearchParams(location.search).get('token') || ''
+      const { createApi, createIframePrinter, createStation } = await import(
+        `/print-station/station.js?token=${encodeURIComponent(token)}`
+      )
       const $ = (id) => document.getElementById(id)
-      const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
       const STATE_LABELS = { pending: '印刷待ち', printing: '印刷中', done: '済み' }
-      /** 1 枚を印刷したあと、次を取り出すまでの待ち（プリンタへの送信を詰まらせない） */
-      const GAP_MS = 1500
       const POLL_MS = 1500
-
-      let paused = false
-      let busy = false
 
       const clock = (ms) =>
         ms === null ? '—' : new Date(ms).toLocaleTimeString('ja-JP', { hour12: false })
-      const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 
-      async function post(path, body) {
-        const res = await fetch(path, {
-          method: 'POST',
-          headers,
-          body: body === undefined ? undefined : JSON.stringify(body),
-        })
-        return res.json()
-      }
+      const api = createApi(token)
 
       function render(s) {
         $('pending').textContent = s.pending
         $('printing').textContent = s.printing
         $('next').textContent = s.nextNumber
-        $('logo-warn').hidden = s.logo !== false
+        if (s.logo !== undefined) $('logo-warn').hidden = s.logo
         const rows = s.jobs.map((j) => {
           const tr = document.createElement('tr')
           const cells = [j.number, STATE_LABELS[j.state], clock(j.receivedAt), clock(j.printedAt)]
@@ -243,7 +237,11 @@
             b.textContent = 'もういちど印刷'
             b.addEventListener('click', async () => {
               b.disabled = true
-              render(await post('/api/print/reprint', { id: j.id }))
+              try {
+                render(await api.reprint(j.id))
+              } catch {
+                $('conn-warn').hidden = false
+              }
             })
             td.appendChild(b)
           }
@@ -253,65 +251,43 @@
         if (rows.length > 0) $('jobs').replaceChildren(...rows)
       }
 
+      const station = createStation({
+        api,
+        printSheet: createIframePrinter($('sheet'), token),
+        wait: (ms) => new Promise((r) => setTimeout(r, ms)),
+        view: {
+          render,
+          connected: (ok) => {
+            $('conn-warn').hidden = ok
+          },
+          message: (text) => {
+            $('message').textContent = `${text}（${clock(Date.now())}）`
+          },
+          failed: (job) => {
+            $('print-failed').hidden = false
+            $('print-failed-number').textContent = job.number
+            renderMode()
+          },
+        },
+      })
+
       function renderMode() {
+        const paused = station.isPaused()
         $('mode').textContent = paused ? '一時停止中' : '動作中'
         $('mode').className = paused ? 'paused' : 'running'
         $('toggle').textContent = paused ? '再開する' : '一時停止'
       }
 
-      /** 印刷シートを読み込んで、印刷する。print() は、印刷を送るか、確認の画面を閉じるまで戻らない */
-      function printSheet(job) {
-        return new Promise((resolve) => {
-          const frame = $('sheet')
-          frame.onload = () => {
-            frame.onload = null
-            // 画像（ロゴ）の描画を待ってから
-            setTimeout(() => {
-              try {
-                frame.contentWindow.focus()
-                frame.contentWindow.print()
-              } catch (e) {
-                console.error(e)
-              }
-              resolve()
-            }, 300)
-          }
-          frame.src = `/print-station/sheet?id=${encodeURIComponent(job.id)}&token=${encodeURIComponent(token)}`
-        })
-      }
-
-      async function tick() {
-        if (busy) return
-        busy = true
-        try {
-          const res = await fetch('/api/print/status', { headers, cache: 'no-store' })
-          if (!res.ok) throw new Error(`HTTP ${res.status}`)
-          render(await res.json())
-          $('conn-warn').hidden = true
-          if (paused) return
-          const { job } = await post('/api/print/claim')
-          if (!job) return
-          $('message').textContent = `整理番号 ${job.number} を印刷しています…`
-          await printSheet(job)
-          render(await post('/api/print/done', { id: job.id }))
-          $('message').textContent = `整理番号 ${job.number} を印刷しました（${clock(Date.now())}）`
-          await wait(GAP_MS)
-        } catch {
-          $('conn-warn').hidden = false
-        } finally {
-          busy = false
-        }
-      }
-
       $('toggle').addEventListener('click', () => {
-        paused = !paused
+        station.setPaused(!station.isPaused())
+        if (!station.isPaused()) $('print-failed').hidden = true
         renderMode()
       })
       $('launch').textContent =
         `"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --kiosk-printing --user-data-dir=C:\\ocbs-print "${location.href}"`
       renderMode()
-      tick()
-      setInterval(tick, POLL_MS)
+      station.tick()
+      setInterval(() => station.tick(), POLL_MS)
     </script>
   </body>
 </html>

@@ -63,7 +63,7 @@ npm run host
 | `--dist` | `dist` | 配信するアプリ |
 | `--state` | `.host/progress.json` | 進行状態の保存先（§6） |
 | `--logo` | `server/assets/school-logo.jpg` | 持ち帰りカードに載せる学校ロゴ。見つからないときは、ロゴなしで印刷する |
-| `--public-url` | アプリと同じ公開URL | 印刷の依頼を検証する公開URL。アプリを `VITE_PUBLIC_URL` 付きでビルドしたときは、同じ値を渡す |
+| `--public-url` | 環境変数 `VITE_PUBLIC_URL`、なければアプリの既定 | 印刷の依頼を検証する公開URL。アプリのビルドと同じ値にする（起動時に表示する。食い違うと、ログに出る） |
 
 例: `npm run host -- --port 8081`
 

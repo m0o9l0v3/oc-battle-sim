@@ -28,25 +28,33 @@ function queue() {
 
 describe('印刷の依頼の検証（readPrintRequest）', () => {
   it('公開URLの持ち帰りURLを受け付け、名前は復号した設定から取り出す', () => {
-    expect(readPrintRequest({ url }, DEFAULT_PUBLIC_APP_URL)).toEqual(input)
+    expect(readPrintRequest({ url }, DEFAULT_PUBLIC_APP_URL)).toEqual({ ok: true, request: input })
   })
 
   it('ファイター名が空なら、既定の名前にする', () => {
     const blank = buildTakeHomeUrl(DEFAULT_PUBLIC_APP_URL, createDefaultConfig('p1'), stage)!
     const r = readPrintRequest({ url: blank }, DEFAULT_PUBLIC_APP_URL)
-    expect(r?.fighterName).not.toBe('')
+    expect(r.ok && r.request.fighterName).not.toBe('')
   })
 
   it.each([
     ['本文がない', null],
     ['url がない', {}],
     ['url が文字列でない', { url: 1 }],
-    ['ほかのサイトの URL', { url: url.replace(DEFAULT_PUBLIC_APP_URL, 'https://evil.example/') }],
     ['フラグメントがない', { url: DEFAULT_PUBLIC_APP_URL }],
     ['フラグメントが壊れている', { url: `${url.slice(0, -2)}xx` }],
     ['長すぎる', { url: `${url}${'A'.repeat(600)}` }],
   ])('%s: 受け付けない', (_, body) => {
-    expect(readPrintRequest(body, DEFAULT_PUBLIC_APP_URL)).toBeNull()
+    expect(readPrintRequest(body, DEFAULT_PUBLIC_APP_URL)).toEqual({ ok: false, reason: 'invalid' })
+  })
+
+  it('ほかの公開URL: 受け付けず、設定の食い違いとして、`#` より前だけを返す', () => {
+    const other = url.replace(DEFAULT_PUBLIC_APP_URL, 'https://evil.example/')
+    expect(readPrintRequest({ url: other }, DEFAULT_PUBLIC_APP_URL)).toEqual({
+      ok: false,
+      reason: 'public_url_mismatch',
+      base: 'https://evil.example/',
+    })
   })
 })
 

@@ -323,6 +323,11 @@ describe('持ち帰りカードの印刷（take-home-print.md）', () => {
       (await printJob(h, takeHomeUrl.replace(DEFAULT_PUBLIC_APP_URL, 'https://x.example/'))).status,
     ).toBe(400)
     expect((await printJob(h, `${takeHomeUrl}AA`)).status).toBe(400)
+    // 公開URLの食い違いは、設定の誤りとして 1 回だけログに出す（名前・フラグメントは出さない）
+    const mismatch = logs.filter((l) => l.includes('公開URLが、親機の設定と違います'))
+    expect(mismatch).toHaveLength(1)
+    expect(mismatch[0]).toContain('https://x.example/')
+    expect(mismatch[0]).not.toContain('#t1.')
     expect((await fetch(h.url('/api/print/job'))).status).toBe(405)
   })
 
@@ -374,6 +379,11 @@ describe('持ち帰りカードの印刷（take-home-print.md）', () => {
     expect((await fetch(h.url('/print-station/sheet?id=x&token=wrong'))).status).toBe(401)
     expect((await fetch(h.url('/api/print/status'))).status).toBe(401)
     expect((await fetch(h.url('/api/print/claim'), { method: 'POST' })).status).toBe(401)
+    expect((await fetch(h.url('/print-station/station.js'))).status).toBe(401)
+    const js = await fetch(h.url(`/print-station/station.js?token=${TOKEN}`))
+    expect(js.status).toBe(200)
+    expect(js.headers.get('content-type')).toContain('text/javascript')
+    expect(await js.text()).toContain('export function createStation')
   })
 
   it('印刷ステーションは、親機PCの外からは開けない', async () => {

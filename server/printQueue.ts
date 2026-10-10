@@ -61,19 +61,28 @@ const MAX_URL_LENGTH = 512
  * 一致し、フラグメントが復号できるものだけを受け付ける（任意の URL の QR を刷らせない）。
  * 名前は、復号した設定から取り出す（参加者PCが送った文字列をそのまま使わない）
  */
-export function readPrintRequest(
-  body: unknown,
-  publicUrl: string,
-): { url: string; fighterName: string; stageName: string } | null {
-  if (typeof body !== 'object' || body === null) return null
+export function readPrintRequest(body: unknown, publicUrl: string): PrintRequestRead {
+  const invalid = { ok: false, reason: 'invalid' } as const
+  if (typeof body !== 'object' || body === null) return invalid
   const url = (body as { url?: unknown }).url
-  if (typeof url !== 'string' || url.length > MAX_URL_LENGTH) return null
+  if (typeof url !== 'string' || url.length > MAX_URL_LENGTH) return invalid
   const hash = url.indexOf('#')
-  if (hash < 0 || url.slice(0, hash) !== publicUrl) return null
+  if (hash < 0) return invalid
   const r = decodeTakeHome(url.slice(hash))
-  if (!r.ok) return null
-  return { url, fighterName: resolveName(r.character.name, 'p1'), stageName: r.stage.name }
+  if (!r.ok) return invalid
+  // 中身は正しいのに、公開URLだけが違う: 親機の設定（--public-url）とアプリのビルドの食い違い
+  const base = url.slice(0, hash)
+  if (base !== publicUrl) return { ok: false, reason: 'public_url_mismatch', base }
+  return {
+    ok: true,
+    request: { url, fighterName: resolveName(r.character.name, 'p1'), stageName: r.stage.name },
+  }
 }
+
+export type PrintRequestRead =
+  | { ok: true; request: { url: string; fighterName: string; stageName: string } }
+  | { ok: false; reason: 'invalid' }
+  | { ok: false; reason: 'public_url_mismatch'; base: string }
 
 /** 印刷待ちの上限（いたずらで紙を使い切らないように） */
 export const MAX_PENDING = 60

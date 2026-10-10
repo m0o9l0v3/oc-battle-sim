@@ -10,6 +10,7 @@ import type { PrintRequestResult } from '../net/index.ts'
 import { canRematch, statsChanged, type Session } from '../session/index.ts'
 import { buildTakeHomeUrl, PUBLIC_APP_URL } from '../share/index.ts'
 import { keysLabel } from './keyLabels.ts'
+import { createPrintRequester, type PrintStatus } from './printRequest.ts'
 import { QrCode } from './QrCode.tsx'
 import { MatchCanvas, type MatchHud } from './MatchCanvas.tsx'
 import { StatEditor } from './StatEditor.tsx'
@@ -234,7 +235,6 @@ export function RedesignScreen({
   )
 }
 
-/** S12 おわり。見た目・能力値・ステージは、リセットまで保持する。持ち帰り用の QR と URL（take-home-share.md） */
 /** S12 の印刷（親機があるときだけ）。send は依頼を送る、onAccepted は受け付けられた整理番号を、セッションへ */
 export type EndScreenPrint = {
   send: (takeHomeUrl: string) => Promise<PrintRequestResult>
@@ -246,8 +246,10 @@ export type EndScreenPrint = {
 /** 「おくれたよ！」を見せてから、待機の画面へ切り替えるまで（take-home-print.md §7.2） */
 export const PRINT_SUCCESS_MS = 1000
 
-type PrintStatus = 'idle' | 'sending' | 'success' | 'failed'
-
+/**
+ * S12 おわり。見た目・能力値・ステージは、リセットまで保持する。持ち帰り用の QR と URL（take-home-share.md）。
+ * 親機があるときは、持ち帰りカードの印刷を依頼でき、受け付けたら待機の画面になる（take-home-print.md §7）
+ */
 export function EndScreen({
   session,
   onReset,
@@ -260,29 +262,24 @@ export function EndScreen({
   const { p1, stage, printNumber } = session.data
   const url = buildTakeHomeUrl(PUBLIC_APP_URL, p1, stage)
   const [status, setStatus] = useState<PrintStatus>('idle')
-  // 同じ描画の中の連打でも、1 回だけ送る
-  const sendingRef = useRef(false)
+  // 依頼の関数は、最初の 1 回だけ作る（送信中の印を、描画をまたいで持つ）。親機の状態の変化は、ref で渡す
+  const printRef = useRef(print)
+  useEffect(() => {
+    printRef.current = print
+  }, [print])
+  const [requestPrint] = useState(() =>
+    createPrintRequester(() => ({
+      send: (u) => printRef.current?.send(u) ?? Promise.resolve({ ok: false }),
+      onAccepted: (n) => printRef.current?.onAccepted(n),
+      onStatus: setStatus,
+    })),
+  )
 
   useEffect(() => {
     if (status !== 'success') return
     const t = setTimeout(() => setStatus('idle'), PRINT_SUCCESS_MS)
     return () => clearTimeout(t)
   }, [status])
-
-  const requestPrint = useCallback(async () => {
-    if (!print || !url || sendingRef.current) return
-    sendingRef.current = true
-    setStatus('sending')
-    const r = await print.send(url)
-    sendingRef.current = false
-    if (r.ok) {
-      // すぐにセッションへ残す（更新しても、待機の画面のまま。再び依頼させない）
-      print.onAccepted(r.number)
-      setStatus('success')
-    } else {
-      setStatus('failed')
-    }
-  }, [print, url])
 
   // 印刷を受け付けたあとは、待機の画面だけ（ボタンを出さない。リセットで戻る）
   if (printNumber !== undefined && status !== 'success') {
@@ -322,7 +319,7 @@ export function EndScreen({
                 variant="main"
                 disabled={status === 'sending' || status === 'success' || !!print.blocked}
                 reason={print.blocked}
-                onClick={() => void requestPrint()}
+                onClick={() => void requestPrint(url)}
               >
                 {status === 'sending' && <span className="spinner" aria-hidden="true" />}
                 {status === 'sending' ? pm.sending : pm.button}
@@ -332,7 +329,8 @@ export function EndScreen({
               </p>
             </section>
           )}
-          {status !== 'success' && (
+          {/* 送信中・送れた直後は出さない（リセットすると、だれも受け取らないカードが刷られる） */}
+          {status !== 'sending' && status !== 'success' && (
             <Button variant="sub" onClick={onReset}>
               {m.end.reset}
             </Button>
