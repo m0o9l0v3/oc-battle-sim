@@ -24,6 +24,7 @@ import { EndScreen, MatchScreen, PrepScreen, RedesignScreen, StartScreen } from 
 import { PracticeScreen } from './PracticeScreen.tsx'
 import { useHostProgress } from './hostProgress.ts'
 import { useSession } from './session.ts'
+import { MobilePlayScreen, tryEnterLandscape } from './MobilePlayScreen.tsx'
 import { isMobileEnvironment, TakeHomeEntry } from './TakeHomeEntry.tsx'
 import { StageEditorScreen } from './StageEditorScreen.tsx'
 import { StageScreen } from './StageScreen.tsx'
@@ -39,6 +40,8 @@ export function AppShell({ repo, link }: { repo?: SessionRepository; link?: Host
   // 持ち帰りの設定の入口。選ぶまで、S01 の前に出す（選んだら、URL のフラグメントを取り除く）
   const [entry, setEntry] = useState(takeHome)
   const [mobile] = useState(isMobileEnvironment)
+  // スマホで、持ち帰った設定のまま遊んでいる（mobile-ui.md §4.1）
+  const [mobilePlay, setMobilePlay] = useState(false)
   // リセットのたびに、画面の部品の状態（S04 のエディタなど）を、作り直す（前の参加者の作品を、次の参加者に見せない）
   const [generation, setGeneration] = useState(0)
   const reset = useCallback(() => {
@@ -77,6 +80,15 @@ export function AppShell({ repo, link }: { repo?: SessionRepository; link?: Host
     }
   }, [])
   // 失敗は、保存した途中の画面があっても、先に伝える（壊れた URL を、黙って無視しない）
+  if (entry && entry.status === 'restored' && mobilePlay) {
+    return (
+      <MobilePlayScreen
+        config={entry.character}
+        stage={entry.stage}
+        onBack={() => setMobilePlay(false)}
+      />
+    )
+  }
   if (entry && (entry.status === 'failed' || session.data.screen === 'S01')) {
     return (
       <TakeHomeEntry
@@ -85,6 +97,10 @@ export function AppShell({ repo, link }: { repo?: SessionRepository; link?: Host
         onPlay={() => {
           dispatch({ type: 'IMPORT_PLAY' })
           leaveEntry()
+        }}
+        onPlayMobile={() => {
+          tryEnterLandscape()
+          setMobilePlay(true)
         }}
         onFresh={() => {
           dispatch({ type: 'RESET' })
