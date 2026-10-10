@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { messages } from '../assets/index.ts'
 import { createDefaultConfig } from '../fighter/index.ts'
 import { createSession } from '../session/index.ts'
-import { decodeTakeHome, worstCaseUrlLength } from '../share/index.ts'
+import { decodeTakeHome, makeQr, worstCaseUrlLength } from '../share/index.ts'
 import { presetStage } from '../stage/index.ts'
 import { EndScreen } from './FlowScreens.tsx'
-import { makeQr, QrCode } from './QrCode.tsx'
+import { QrCode } from './QrCode.tsx'
 import { TakeHomeEntry } from './TakeHomeEntry.tsx'
 
 const m = messages.takeHome

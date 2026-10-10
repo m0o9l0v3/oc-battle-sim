@@ -5,21 +5,26 @@
 //   - アプリ（dist）の静的配信。`/?reset`（個別リセット用ブックマーク）も、同じ index.html を返す
 //   - GET /api/progress: 進行状態の配信（参加者PCが 1 秒ごとに取得する）
 //   - 管理画面 GET /admin と、管理API（/api/admin/*）。親機PC上（ループバック）から、起動ごとの一時トークンでだけ使える
+//   - 持ち帰りカードの印刷（take-home-print.md）: 参加者PCからの依頼 POST /api/print/job と、
+//     親機PC上の印刷ステーション GET /print-station（管理画面と同じ認証）
 //
-// 参加者のデータ（ステージ・設定・名前・結果）は、保存・受信・ログ出力しない（§11）。
-// 参加者PCからの要求の本文は読まない。ログには、管理操作と、異常だけを出す（取得のたびに、出さない）
+// 参加者のデータ（ステージ・設定・名前・結果）は、保存・ログ出力しない（§11）。
+// 参加者PCからの要求の本文は、印刷の依頼（持ち帰りURL）だけを読む。印刷が済むまでメモリにだけ置く（take-home-print.md §5）。
+// ログには、管理操作と、印刷の受付（整理番号だけ）と、異常だけを出す（取得のたびに、出さない）
 //
 // createHostServer() は組み立てだけを行い、listen しない（テストから、ポート 0 で起動して確かめるため）
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { readFile, stat } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { extname, join, resolve, sep } from 'node:path'
+import { PUBLIC_APP_URL } from '../src/share/index.ts'
 import {
   adminView,
   applyAction,
   COMMAND_LABELS,
   createHostProgress,
   formatRemaining,
+  permissionsOf,
   PHASE_LABELS,
   readHostAction,
   toProgressState,
@@ -27,6 +32,8 @@ import {
   type HostProgress,
 } from '../src/progress/index.ts'
 import { createClientCounter } from './clients.ts'
+import { createPrintQueue, readPrintRequest, type PrintQueue } from './printQueue.ts'
+import { renderPrintSheet } from './printSheet.ts'
 import { createMemoryStore, type ProgressStore } from './store.ts'
 
 export type HostServerOptions = {
@@ -34,6 +41,12 @@ export type HostServerOptions = {
   distDir: string
   /** 管理画面の HTML */
   adminHtmlPath?: string
+  /** 印刷ステーションの HTML */
+  printStationHtmlPath?: string
+  /** 持ち帰りカードに載せる学校ロゴ。ないときは、ロゴなしで印刷する */
+  logoPath?: string
+  /** 持ち帰りURLの公開URL（印刷の依頼を検証する）。既定は、アプリと同じ PUBLIC_APP_URL */
+  publicUrl?: string
   /** 起動ごとの一時トークン。省略すると、ランダムに作る */
   adminToken?: string
   /** 進行状態の保存先（再起動で引き継ぐ）。省略すると、メモリだけ */
@@ -51,12 +64,26 @@ export type HostServer = {
   server: Server
   adminToken: string
   getProgress: () => HostProgress
+  printQueue: PrintQueue
 }
 
 const DEFAULT_ADMIN_HTML = join(import.meta.dirname, 'admin.html')
+const DEFAULT_PRINT_STATION_HTML = join(import.meta.dirname, 'print-station.html')
+const PRINT_STATION_JS = join(import.meta.dirname, 'print-station.js')
 
-/** 管理画面からの要求の本文の上限。参加者のデータを受け付ける経路ではないため、小さくする */
-const MAX_ADMIN_BODY = 1024
+const IMAGE_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+}
+
+/**
+ * 要求の本文（JSON）の上限。管理操作と、参加者PCからの印刷の依頼（持ち帰りURL。最悪でも 193 バイト）だけが本文を持つ。
+ * どちらも小さいため、大きなデータを送られても、受け取らない
+ */
+const MAX_BODY = 1024
 
 export const isLoopback = (address: string | undefined): boolean =>
   address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1'
@@ -100,7 +127,7 @@ function sendText(res: ServerResponse, status: number, text: string) {
 /** 本文を読まずに捨てる（参加者PCからの本文は、受け取らない） */
 const discard = (req: IncomingMessage) => req.resume()
 
-/** 管理操作の本文（JSON）を読む。大きすぎる・壊れているときは null */
+/** 本文（JSON）を読む。大きすぎる・壊れているときは null */
 function readSmallJson(req: IncomingMessage): Promise<unknown> {
   return new Promise((done) => {
     const chunks: Buffer[] = []
@@ -108,7 +135,7 @@ function readSmallJson(req: IncomingMessage): Promise<unknown> {
     let tooLarge = false
     req.on('data', (chunk: Buffer) => {
       size += chunk.length
-      if (size > MAX_ADMIN_BODY) tooLarge = true
+      if (size > MAX_BODY) tooLarge = true
       else chunks.push(chunk)
     })
     req.on('end', () => {
@@ -154,7 +181,11 @@ export function createHostServer(options: HostServerOptions): HostServer {
   const distDir = resolve(options.distDir)
   const adminHtmlPath = options.adminHtmlPath ?? DEFAULT_ADMIN_HTML
   const participantUrls = options.participantUrls ?? []
+  const printStationHtmlPath = options.printStationHtmlPath ?? DEFAULT_PRINT_STATION_HTML
+  const publicUrl = options.publicUrl ?? PUBLIC_APP_URL
   const clients = createClientCounter()
+  // 整理番号は、親機サーバーの起動のたびに 1 から（一斉リセットでは戻さない）
+  const printQueue = createPrintQueue({ now, newId: randomUUID })
   const startedAt = now()
 
   // 保存があれば、そこから続ける（親機の再起動で、参加者PCをリセットしない）
@@ -218,6 +249,86 @@ export function createHostServer(options: HostServerOptions): HostServer {
     sendJson(res, 200, status())
   }
 
+  /** 学校ロゴ（data URI）。最初に読めたものを使い続ける。読めないときは null（ロゴなしで印刷する） */
+  let logo: string | null | undefined
+  async function logoDataUri(): Promise<string | null> {
+    if (logo) return logo
+    const path = options.logoPath
+    const type = path ? IMAGE_TYPES[extname(path).toLowerCase()] : undefined
+    if (!path || !type) return null
+    try {
+      logo = `data:${type};base64,${(await readFile(path)).toString('base64')}`
+      return logo
+    } catch {
+      return null
+    }
+  }
+
+  let warnedPublicUrl = false
+  /** 参加者PCからの印刷の依頼。持ち帰りの操作（share）が許されるフェーズだけ受け付ける */
+  async function handlePrintJob(req: IncomingMessage, res: ServerResponse) {
+    if (!permissionsOf(toProgressState(progress, now())).share) {
+      discard(req)
+      return sendJson(res, 409, { error: 'not_allowed_now' })
+    }
+    const input = readPrintRequest(await readSmallJson(req), publicUrl)
+    if (!input.ok) {
+      // 公開URLの食い違い（アプリのビルドと --public-url）は、設定の誤り。すべての依頼が断られるため、1 回だけ知らせる
+      // （名前を含むフラグメントは出さない。`#` より前だけ）
+      if (input.reason === 'public_url_mismatch' && !warnedPublicUrl) {
+        warnedPublicUrl = true
+        log(
+          `[host] 印刷の依頼の公開URLが、親機の設定と違います。アプリのビルドの VITE_PUBLIC_URL と、--public-url をそろえてください（依頼: ${JSON.stringify(input.base)}、親機: ${JSON.stringify(publicUrl)}）`,
+        )
+      }
+      return sendJson(res, 400, { error: 'invalid_request' })
+    }
+    const r = printQueue.enqueue(input.request)
+    if (!r.ok) {
+      log('[host] 印刷待ちが いっぱいのため、印刷の依頼を断りました')
+      return sendJson(res, 503, { error: r.error })
+    }
+    // 名前・URL は、ログに出さない
+    log(`[host] 印刷を受け付けました: 整理番号 ${r.job.number}`)
+    sendJson(res, 200, { number: r.job.number })
+  }
+
+  /** 印刷ステーションの操作（取り出し・済み・再印刷）。管理操作と同じ認証 */
+  async function handlePrintStation(
+    req: IncomingMessage,
+    res: ServerResponse,
+    op: 'claim' | 'done' | 'reprint',
+  ) {
+    const denied = adminAuth(req, bearer(req))
+    if (denied) {
+      discard(req)
+      return sendJson(res, denied, { error: denied === 403 ? 'forbidden' : 'unauthorized' })
+    }
+    if (op === 'claim') {
+      discard(req)
+      const job = printQueue.claim()
+      return sendJson(res, 200, { job: job && { id: job.id, number: job.number } })
+    }
+    const body = await readSmallJson(req)
+    const id = typeof body === 'object' && body !== null ? (body as { id?: unknown }).id : null
+    if (typeof id !== 'string') return sendJson(res, 400, { error: 'invalid_request' })
+    const ok = op === 'done' ? printQueue.done(id) : printQueue.reprint(id)
+    if (!ok) return sendJson(res, 409, { error: 'invalid_state', ...printQueue.summary() })
+    if (op === 'reprint') log(`[host] 再印刷します: 整理番号 ${printQueue.get(id)?.number}`)
+    sendJson(res, 200, printQueue.summary())
+  }
+
+  function sendHtml(res: ServerResponse, html: Buffer | string) {
+    const body = typeof html === 'string' ? Buffer.from(html) : html
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Length': body.length,
+      'Cache-Control': 'no-store',
+      'Referrer-Policy': 'no-referrer',
+    })
+    res.end(body)
+  }
+
   async function serveStatic(req: IncomingMessage, res: ServerResponse, pathname: string) {
     let rel: string
     try {
@@ -269,6 +380,22 @@ export function createHostServer(options: HostServerOptions): HostServer {
       return handleCommand(req, res)
     }
 
+    // 印刷の依頼（参加者PCから）と、印刷ステーションの操作（親機PC上から）
+    const printOps = {
+      '/api/print/job': null,
+      '/api/print/claim': 'claim',
+      '/api/print/done': 'done',
+      '/api/print/reprint': 'reprint',
+    } as const
+    if (Object.hasOwn(printOps, pathname)) {
+      if (method !== 'POST') {
+        discard(req)
+        return sendJson(res, 405, { error: 'method_not_allowed' })
+      }
+      const op = printOps[pathname as keyof typeof printOps]
+      return op === null ? handlePrintJob(req, res) : handlePrintStation(req, res, op)
+    }
+
     // ここから下は、本文を受け取らない
     discard(req)
 
@@ -296,17 +423,54 @@ export function createHostServer(options: HostServerOptions): HostServer {
           '管理画面は、親機PCで、起動時に表示された URL から開いてください。',
         )
       try {
-        const html = await readFile(adminHtmlPath)
-        res.writeHead(200, {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Content-Length': html.length,
-          'Cache-Control': 'no-store',
-          'Referrer-Policy': 'no-referrer',
-        })
-        return res.end(html)
+        return sendHtml(res, await readFile(adminHtmlPath))
       } catch {
         return sendText(res, 500, 'admin.html を読めません')
       }
+    }
+
+    if (pathname === '/api/print/status') {
+      const denied = adminAuth(req, bearer(req))
+      if (denied)
+        return sendJson(res, denied, { error: denied === 403 ? 'forbidden' : 'unauthorized' })
+      return sendJson(res, 200, { ...printQueue.summary(), logo: (await logoDataUri()) !== null })
+    }
+
+    if (
+      pathname === '/print-station' ||
+      pathname === '/print-station/sheet' ||
+      pathname === '/print-station/station.js'
+    ) {
+      const denied = adminAuth(req, url.searchParams.get('token'))
+      if (denied)
+        return sendText(
+          res,
+          denied,
+          '印刷ステーションは、親機PCで、管理画面のリンクから開いてください。',
+        )
+      if (pathname === '/print-station') {
+        try {
+          return sendHtml(res, await readFile(printStationHtmlPath))
+        } catch {
+          return sendText(res, 500, 'print-station.html を読めません')
+        }
+      }
+      if (pathname === '/print-station/station.js') {
+        try {
+          const js = await readFile(PRINT_STATION_JS)
+          res.writeHead(200, {
+            'Content-Type': 'text/javascript; charset=utf-8',
+            'Content-Length': js.length,
+            'Cache-Control': 'no-store',
+          })
+          return res.end(js)
+        } catch {
+          return sendText(res, 500, 'print-station.js を読めません')
+        }
+      }
+      const job = printQueue.get(url.searchParams.get('id') ?? '')
+      if (!job) return sendText(res, 404, 'not found')
+      return sendHtml(res, renderPrintSheet(job, await logoDataUri()))
     }
 
     if (pathname.startsWith('/api/')) return sendJson(res, 404, { error: 'not_found' })
@@ -323,5 +487,5 @@ export function createHostServer(options: HostServerOptions): HostServer {
     })
   })
 
-  return { server, adminToken, getProgress: () => progress }
+  return { server, adminToken, getProgress: () => progress, printQueue }
 }

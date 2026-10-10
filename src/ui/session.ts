@@ -66,15 +66,19 @@ export function useSession(repo?: SessionRepository) {
     }
   }, [])
 
-  // 保存: 画面の遷移・対戦の終了は、すぐ。編集中の値は、待ってから（対戦中のループの中では、保存しない）
+  // 保存: 画面の遷移・対戦の終了・印刷の受付は、すぐ。編集中の値は、待ってから（対戦中のループの中では、保存しない）。
+  // 印刷の受付（整理番号）を待たせると、その間の更新で待機が外れ、もう一度依頼できてしまう（take-home-print.md §7.2）
   const lastScreen = useRef(session.data.screen)
   const lastMatches = useRef(session.data.matches.length)
+  const lastPrintNumber = useRef(session.data.printNumber)
   useEffect(() => {
     const immediate =
       session.data.screen !== lastScreen.current ||
-      session.data.matches.length !== lastMatches.current
+      session.data.matches.length !== lastMatches.current ||
+      session.data.printNumber !== lastPrintNumber.current
     lastScreen.current = session.data.screen
     lastMatches.current = session.data.matches.length
+    lastPrintNumber.current = session.data.printNumber
     // S01（まだ何も作っていない）は、保存を残さない（リセットのあとに、前の参加者の保存が残らない）
     const save = () =>
       session.data.screen === 'S01'

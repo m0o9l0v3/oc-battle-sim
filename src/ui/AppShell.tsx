@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { messages } from '../assets/index.ts'
 import type { ProgressState } from '../model/index.ts'
-import type { HostLink } from '../net/index.ts'
+import { sendPrintRequest, type HostLink, type PrintRequestResult } from '../net/index.ts'
 import { offersTakeHome } from '../progress/index.ts'
 import { editorFromStage, type EditorState } from '../stage/index.ts'
 import {
@@ -20,7 +20,14 @@ import { AppearanceScreen } from './AppearanceScreen.tsx'
 import { BattleReport } from './BattleReport.tsx'
 import { CompareView } from './CompareView.tsx'
 import { Button, MessageBand, StepBar } from './components/index.ts'
-import { EndScreen, MatchScreen, PrepScreen, RedesignScreen, StartScreen } from './FlowScreens.tsx'
+import {
+  EndScreen,
+  type EndScreenPrint,
+  MatchScreen,
+  PrepScreen,
+  RedesignScreen,
+  StartScreen,
+} from './FlowScreens.tsx'
 import { PracticeScreen } from './PracticeScreen.tsx'
 import { useHostProgress } from './hostProgress.ts'
 import { useSession } from './session.ts'
@@ -35,7 +42,16 @@ import { StatScreen } from './StatScreen.tsx'
  * 遷移の可否は reducer（session/flow.ts）が持つ。親機の進行による可否は session/gate.ts が持つ。
  * ここは、画面を選んで、操作を渡すだけ
  */
-export function AppShell({ repo, link }: { repo?: SessionRepository; link?: HostLink }) {
+export function AppShell({
+  repo,
+  link,
+  sendPrint,
+}: {
+  repo?: SessionRepository
+  link?: HostLink
+  /** 持ち帰りカードの印刷の依頼（テストで差し替える。既定は Screens が決める） */
+  sendPrint?: (takeHomeUrl: string) => Promise<PrintRequestResult>
+}) {
   const { session, dispatch: baseDispatch, syncHost, takeHome } = useSession(repo)
   // 持ち帰りの設定の入口。選ぶまで、S01 の前に出す（選んだら、URL のフラグメントを取り除く）
   const [entry, setEntry] = useState(takeHome)
@@ -111,7 +127,15 @@ export function AppShell({ repo, link }: { repo?: SessionRepository; link?: Host
       />
     )
   }
-  return <Screens key={generation} session={session} dispatch={dispatch} host={host} />
+  return (
+    <Screens
+      key={generation}
+      session={session}
+      dispatch={dispatch}
+      host={host}
+      sendPrint={sendPrint}
+    />
+  )
 }
 
 type Dispatch = ReturnType<typeof useSession>['dispatch']
@@ -122,10 +146,12 @@ export function Screens({
   session,
   dispatch,
   host = NO_HOST,
+  sendPrint = sendPrintRequest,
 }: {
   session: Session
   dispatch: Dispatch
   host?: HostContext
+  sendPrint?: (takeHomeUrl: string) => Promise<PrintRequestResult>
 }) {
   const { data } = session
   const rematchBlocked = operationBlockReason(host, 'rematch')
@@ -261,9 +287,20 @@ export function Screens({
         />
       )
       break
-    case 'S12':
-      screen = <EndScreen session={session} onReset={() => dispatch({ type: 'RESET' })} />
+    case 'S12': {
+      // 印刷は、親機とつながっているときだけ（親機がない・通信が切れているときは、ボタンを出さない）
+      const print: EndScreenPrint | undefined = host.live
+        ? {
+            send: sendPrint,
+            onAccepted: (number) => dispatch({ type: 'PRINT_ACCEPTED', number }),
+            blocked: operationBlockReason(host, 'share'),
+          }
+        : undefined
+      screen = (
+        <EndScreen session={session} onReset={() => dispatch({ type: 'RESET' })} print={print} />
+      )
       break
+    }
   }
 
   // 画面の中の操作が、親機の進行で止まっているとき: 画面は見せたまま、操作できなくし、理由を出す（§12「表示のみ」）

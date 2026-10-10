@@ -118,6 +118,15 @@ export function readSessionData(v: unknown): SessionData | null {
   }
   // S05 から S03 へ戻っている途中だけ、持つ
   if (v.returnToPractice === true && screen === 'S03') data.returnToPractice = true
+  // 印刷の待機は、S12 だけ（更新しても、待機の画面のまま。再び依頼させない）
+  const printNumber = v.printNumber
+  if (
+    screen === 'S12' &&
+    typeof printNumber === 'number' &&
+    Number.isInteger(printNumber) &&
+    printNumber > 0
+  )
+    data.printNumber = printNumber
   return data
 }
 

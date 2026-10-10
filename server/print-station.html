@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>印刷ステーション（親機）</title>
+    <!-- 持ち帰りカードの印刷ステーション（take-home-print.md §9）。親機PCで開いたままにする。
+         印刷待ちを古い順に 1 件ずつ取り出し、隠した iframe に印刷シートを読み込んで印刷する（手順は print-station.js）。
+         --kiosk-printing を付けた Chrome / Edge では、確認なしで既定のプリンタへ印刷される。
+         参加者の名前・URL は、この画面に出さない（整理番号だけ） -->
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #10131a;
+        color: #eef1f6;
+        font-family: 'Yu Gothic', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 20px 16px 40px;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 16px;
+      }
+      h2 {
+        font-size: 15px;
+        margin: 0 0 10px;
+      }
+      .card {
+        background: #171b26;
+        border: 1px solid #2a3040;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .state {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .state strong {
+        font-size: 22px;
+      }
+      .state strong.running {
+        color: #7fd8c8;
+      }
+      .state strong.paused {
+        color: #ffb74d;
+      }
+      .counts {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 12px;
+        text-align: center;
+      }
+      .counts div {
+        background: #10131a;
+        border-radius: 6px;
+        padding: 8px 4px;
+      }
+      .counts small {
+        display: block;
+        color: #b7c0d1;
+        font-size: 12px;
+      }
+      .counts b {
+        font-size: 28px;
+        font-variant-numeric: tabular-nums;
+      }
+      button {
+        font: inherit;
+        border-radius: 6px;
+        border: 1px solid #3a4560;
+        background: #24304a;
+        color: #eef1f6;
+        padding: 8px 14px;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) {
+        background: #2e3d5e;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 6px 4px;
+        border-bottom: 1px solid #2a3040;
+      }
+      td.num {
+        font-size: 18px;
+        font-weight: bold;
+        font-variant-numeric: tabular-nums;
+      }
+      .warn {
+        color: #ffb74d;
+      }
+      .muted {
+        color: #b7c0d1;
+        font-size: 13px;
+      }
+      code {
+        display: block;
+        background: #10131a;
+        padding: 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        word-break: break-all;
+        user-select: all;
+      }
+      /* 印刷用の iframe。display: none だと印刷できないブラウザがあるため、画面の外に置く */
+      #sheet {
+        position: fixed;
+        left: -10000px;
+        top: 0;
+        width: 210mm;
+        height: 297mm;
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>印刷ステーション（持ち帰りカード）</h1>
+
+      <section class="card">
+        <div class="state">
+          <div>
+            <span class="muted">自動印刷</span><br />
+            <strong id="mode">—</strong>
+          </div>
+          <button type="button" id="toggle">一時停止</button>
+        </div>
+        <div class="counts">
+          <div><small>印刷待ち</small><b id="pending">—</b></div>
+          <div><small>印刷中</small><b id="printing">—</b></div>
+          <div><small>次の整理番号</small><b id="next">—</b></div>
+        </div>
+        <p id="message" class="muted" role="status" aria-live="polite"></p>
+        <p id="logo-warn" class="warn" hidden>
+          学校ロゴが見つからないため、ロゴなしで印刷しています（server/assets/school-logo.jpg
+          を確認して、親機サーバーを起動し直してください）。
+        </p>
+        <p id="conn-warn" class="warn" hidden>親機サーバーにつながりません。</p>
+        <p id="print-failed" class="warn" role="alert" hidden>
+          整理番号
+          <b id="print-failed-number"></b>
+          を印刷できませんでした。自動印刷を止めました。プリンタと親機を確かめてから「再開する」を押してください（1分ほどで、もう一度印刷します）。
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>受け付けた印刷（新しい順）</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>整理番号</th>
+              <th>状態</th>
+              <th>受付</th>
+              <th>印刷</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="jobs">
+            <tr>
+              <td colspan="5" class="muted">まだ ありません</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="muted">
+          紙詰まりなどで刷り直すときは「もういちど印刷」。同じ整理番号のまま、先頭に入ります。
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>このページの開き方（確認なしで印刷する）</h2>
+        <p class="muted">
+          Chrome（または Edge）を、ほかの Chrome
+          をすべて閉じてから、次のコマンドで起動します。既定のプリンタへ、A4
+          で印刷されます。確認の画面が出る場合は、--kiosk-printing
+          が効いていません（その場合は、画面の「印刷」を押せば 印刷できます）。
+        </p>
+        <code id="launch"></code>
+      </section>
+    </main>
+    <iframe id="sheet" title="印刷シート" tabindex="-1" aria-hidden="true"></iframe>
+
+    <script type="module">
+      // 印刷の手順は print-station.js（テストあり）。ここは、画面の表示だけ
+      const token = new URLSearchParams(location.search).get('token') || ''
+      const { createApi, createIframePrinter, createStation } = await import(
+        `/print-station/station.js?token=${encodeURIComponent(token)}`
+      )
+      const $ = (id) => document.getElementById(id)
+      const STATE_LABELS = { pending: '印刷待ち', printing: '印刷中', done: '済み' }
+      const POLL_MS = 1500
+
+      const clock = (ms) =>
+        ms === null ? '—' : new Date(ms).toLocaleTimeString('ja-JP', { hour12: false })
+
+      const api = createApi(token)
+
+      function render(s) {
+        $('pending').textContent = s.pending
+        $('printing').textContent = s.printing
+        $('next').textContent = s.nextNumber
+        if (s.logo !== undefined) $('logo-warn').hidden = s.logo
+        const rows = s.jobs.map((j) => {
+          const tr = document.createElement('tr')
+          const cells = [j.number, STATE_LABELS[j.state], clock(j.receivedAt), clock(j.printedAt)]
+          cells.forEach((v, i) => {
+            const td = document.createElement('td')
+            td.textContent = String(v)
+            if (i === 0) td.className = 'num'
+            tr.appendChild(td)
+          })
+          const td = document.createElement('td')
+          if (j.state === 'done') {
+            const b = document.createElement('button')
+            b.type = 'button'
+            b.textContent = 'もういちど印刷'
+            b.addEventListener('click', async () => {
+              b.disabled = true
+              try {
+                render(await api.reprint(j.id))
+              } catch {
+                $('conn-warn').hidden = false
+              }
+            })
+            td.appendChild(b)
+          }
+          tr.appendChild(td)
+          return tr
+        })
+        if (rows.length > 0) $('jobs').replaceChildren(...rows)
+      }
+
+      const station = createStation({
+        api,
+        printSheet: createIframePrinter($('sheet'), token),
+        wait: (ms) => new Promise((r) => setTimeout(r, ms)),
+        view: {
+          render,
+          connected: (ok) => {
+            $('conn-warn').hidden = ok
+          },
+          message: (text) => {
+            $('message').textContent = `${text}（${clock(Date.now())}）`
+          },
+          failed: (job) => {
+            $('print-failed').hidden = false
+            $('print-failed-number').textContent = job.number
+            renderMode()
+          },
+        },
+      })
+
+      function renderMode() {
+        const paused = station.isPaused()
+        $('mode').textContent = paused ? '一時停止中' : '動作中'
+        $('mode').className = paused ? 'paused' : 'running'
+        $('toggle').textContent = paused ? '再開する' : '一時停止'
+      }
+
+      $('toggle').addEventListener('click', () => {
+        station.setPaused(!station.isPaused())
+        if (!station.isPaused()) $('print-failed').hidden = true
+        renderMode()
+      })
+      $('launch').textContent =
+        `"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --kiosk-printing --user-data-dir=C:\\ocbs-print "${location.href}"`
+      renderMode()
+      station.tick()
+      setInterval(() => station.tick(), POLL_MS)
+    </script>
+  </body>
+</html>

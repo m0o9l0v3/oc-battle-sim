@@ -1,9 +1,11 @@
 // 親機サーバーの起動。使い方: docs/01-experience/event-host.md
 //   npm run build && npm run host
-//   npm run host -- --port 8080 --dist dist --state .host/progress.json
+//   npm run host -- --port 8080 --dist dist --state .host/progress.json --logo server/assets/school-logo.jpg
+import { existsSync } from 'node:fs'
 import { networkInterfaces } from 'node:os'
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
+import { PUBLIC_APP_URL } from '../src/share/index.ts'
 import { createHostServer } from './app.ts'
 import { createFileStore } from './store.ts'
 
@@ -24,6 +26,10 @@ function main() {
       port: { type: 'string', default: process.env.PORT ?? '8080' },
       dist: { type: 'string', default: 'dist' },
       state: { type: 'string', default: '.host/progress.json' },
+      // 持ち帰りカードの学校ロゴ（take-home-print.md §8）
+      logo: { type: 'string', default: 'server/assets/school-logo.jpg' },
+      // 持ち帰りURLの公開URL。既定は、環境変数 VITE_PUBLIC_URL（アプリのビルドと同じ）、なければアプリの既定
+      'public-url': { type: 'string' },
     },
   })
   const port = Number(values.port)
@@ -33,10 +39,15 @@ function main() {
   }
   const addresses = lanAddresses()
   const participantUrls = addresses.map((a) => `http://${a}:${port}/`)
+  const publicUrl = values['public-url'] || process.env.VITE_PUBLIC_URL || PUBLIC_APP_URL
+  const logoPath = resolve(values.logo)
+  const hasLogo = existsSync(logoPath)
   const { server, adminToken } = createHostServer({
     distDir: resolve(values.dist),
     store: createFileStore(resolve(values.state)),
     participantUrls,
+    logoPath: hasLogo ? logoPath : undefined,
+    publicUrl,
   })
 
   server.on('error', (e: NodeJS.ErrnoException) => {
@@ -65,6 +76,13 @@ function main() {
       '',
       '管理画面（このPCでだけ開けます。起動のたびに変わります）:',
       `  http://localhost:${port}/admin?token=${adminToken}`,
+      '',
+      '印刷ステーション（このPCでだけ開けます。--kiosk-printing を付けた Chrome / Edge で開く）:',
+      `  http://localhost:${port}/print-station?token=${adminToken}`,
+      `  持ち帰りURLの公開URL: ${publicUrl}`,
+      hasLogo
+        ? `  学校ロゴ: ${logoPath}`
+        : `  学校ロゴが見つかりません（ロゴなしで印刷します）: ${logoPath}`,
       '',
     ]
     console.log(lines.join('\n'))

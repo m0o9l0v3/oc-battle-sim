@@ -3,7 +3,10 @@ import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { createDefaultConfig } from '../src/fighter/index.ts'
 import { DEFAULT_PLAN, readProgressState, type HostProgress } from '../src/progress/index.ts'
+import { buildTakeHomeUrl, DEFAULT_PUBLIC_APP_URL } from '../src/share/index.ts'
+import { presetStage } from '../src/stage/index.ts'
 import { createHostServer, isLoopback, type HostServerOptions } from './app.ts'
 import { createClientCounter } from './clients.ts'
 import { createFileStore, createMemoryStore } from './store.ts'
@@ -268,6 +271,125 @@ describe('参加者のデータを受け取らない（event-control.md §11）'
     }
     expect(h.getProgress()).toEqual(before)
     expect(logs.join('\n')).not.toContain('たろう')
+  })
+})
+
+describe('持ち帰りカードの印刷（take-home-print.md）', () => {
+  const takeHomeUrl = buildTakeHomeUrl(
+    DEFAULT_PUBLIC_APP_URL,
+    { ...createDefaultConfig('p1'), name: 'はなこ' },
+    presetStage('standard'),
+  )!
+  const printJob = (h: { url: (p: string) => string }, url = takeHomeUrl) =>
+    fetch(h.url('/api/print/job'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    })
+  const station = (h: { url: (p: string) => string }, op: string, body?: unknown) =>
+    fetch(h.url(`/api/print/${op}`), {
+      method: 'POST',
+      headers: auth,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+  /** 持ち帰りの操作が許されるフェーズ（SHARING）まで進める */
+  async function sharing(h: { url: (p: string) => string }) {
+    for (const c of ['START_PRODUCTION', 'START_BATTLE', 'START_SHARING'])
+      expect((await command(h.url('/api/admin/command'), c)).status).toBe(200)
+  }
+
+  it('受け付けた順に整理番号を返す。ログには整理番号だけを出し、名前・URL を出さない', async () => {
+    const h = await start()
+    await sharing(h)
+    expect(await json(printJob(h))).toEqual({ number: 1 })
+    expect(await json(printJob(h))).toEqual({ number: 2 })
+    const text = logs.join('\n')
+    expect(text).toContain('整理番号 1')
+    expect(text).not.toContain('はなこ')
+    expect(text).not.toContain('#t1.')
+  })
+
+  it('持ち帰りの操作が許されないフェーズ（PREPARE）では、受け付けない', async () => {
+    const h = await start()
+    const res = await printJob(h)
+    expect(res.status).toBe(409)
+    expect(h.printQueue.summary().pending).toBe(0)
+  })
+
+  it('公開URLでない・壊れた URL は、受け付けない', async () => {
+    const h = await start()
+    await sharing(h)
+    expect(
+      (await printJob(h, takeHomeUrl.replace(DEFAULT_PUBLIC_APP_URL, 'https://x.example/'))).status,
+    ).toBe(400)
+    expect((await printJob(h, `${takeHomeUrl}AA`)).status).toBe(400)
+    // 公開URLの食い違いは、設定の誤りとして 1 回だけログに出す（名前・フラグメントは出さない）
+    const mismatch = logs.filter((l) => l.includes('公開URLが、親機の設定と違います'))
+    expect(mismatch).toHaveLength(1)
+    expect(mismatch[0]).toContain('https://x.example/')
+    expect(mismatch[0]).not.toContain('#t1.')
+    expect((await fetch(h.url('/api/print/job'))).status).toBe(405)
+  })
+
+  it('印刷ステーション: 取り出す → 印刷シート → 済み → 再印刷', async () => {
+    const h = await start()
+    await sharing(h)
+    await printJob(h)
+    const { job } = (await json(station(h, 'claim'))) as { job: { id: string; number: number } }
+    expect(job.number).toBe(1)
+    expect(await json(station(h, 'claim'))).toEqual({ job: null })
+
+    const sheet = await fetch(h.url(`/print-station/sheet?id=${job.id}&token=${TOKEN}`))
+    expect(sheet.status).toBe(200)
+    const html = await sheet.text()
+    expect(html).toContain('はなこ')
+    expect(html).toContain(takeHomeUrl)
+
+    expect((await json(station(h, 'done', { id: job.id }))).pending).toBe(0)
+    expect((await station(h, 'done', { id: job.id })).status).toBe(409)
+    expect((await json(station(h, 'reprint', { id: job.id }))).pending).toBe(1)
+  })
+
+  it('整理番号は、一斉リセットでは戻らない（親機サーバーの起動のときだけ 1 から）', async () => {
+    const h = await start()
+    await sharing(h)
+    await printJob(h)
+    await command(h.url('/api/admin/command'), 'RESET')
+    await sharing(h)
+    expect(await json(printJob(h))).toEqual({ number: 2 })
+  })
+
+  it('学校ロゴがあれば、印刷シートに埋め込む', async () => {
+    const logoPath = join(dir, 'logo.png')
+    writeFileSync(logoPath, Buffer.from([1, 2, 3]))
+    const h = await start({ logoPath })
+    await sharing(h)
+    await printJob(h)
+    const { job } = (await json(station(h, 'claim'))) as { job: { id: string } }
+    const html = await (
+      await fetch(h.url(`/print-station/sheet?id=${job.id}&token=${TOKEN}`))
+    ).text()
+    expect(html).toContain('src="data:image/png;base64,AQID"')
+    expect((await json(fetch(h.url('/api/print/status'), { headers: auth }))).logo).toBe(true)
+  })
+
+  it('印刷ステーション・状態・シートは、管理画面と同じ認証（トークン・親機PC上）', async () => {
+    const h = await start()
+    expect((await fetch(h.url('/print-station?token=wrong'))).status).toBe(401)
+    expect((await fetch(h.url('/print-station/sheet?id=x&token=wrong'))).status).toBe(401)
+    expect((await fetch(h.url('/api/print/status'))).status).toBe(401)
+    expect((await fetch(h.url('/api/print/claim'), { method: 'POST' })).status).toBe(401)
+    expect((await fetch(h.url('/print-station/station.js'))).status).toBe(401)
+    const js = await fetch(h.url(`/print-station/station.js?token=${TOKEN}`))
+    expect(js.status).toBe(200)
+    expect(js.headers.get('content-type')).toContain('text/javascript')
+    expect(await js.text()).toContain('export function createStation')
+  })
+
+  it('印刷ステーションは、親機PCの外からは開けない', async () => {
+    const remote = await start({ isAdminAddress: () => false })
+    expect((await fetch(remote.url(`/print-station?token=${TOKEN}`))).status).toBe(403)
+    expect((await fetch(remote.url('/api/print/status'), { headers: auth })).status).toBe(403)
   })
 })
 

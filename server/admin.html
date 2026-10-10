@@ -176,6 +176,16 @@
   <body>
     <main>
       <h1>進行管理（親機）</h1>
+      <p>
+        <a
+          id="print-station"
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+          style="color: #7fd8c8"
+          >印刷ステーション（持ち帰りカード）を開く</a
+        >
+      </p>
       <p class="message" id="message" role="alert"></p>
 
       <section class="card" aria-label="いまの進行">
@@ -260,6 +270,7 @@
       // トークンは URL に残す（管理画面を更新しても、開き直せるように）。親機PCの外からは、使えない
       const token = new URLSearchParams(location.search).get('token') || ''
       const $ = (id) => document.getElementById(id)
+      $('print-station').href = `/print-station?token=${encodeURIComponent(token)}`
       const buttons = Array.from(document.querySelectorAll('button[data-command]'))
       const adjustButtons = Array.from(document.querySelectorAll('button[data-delta]'))
       const planForm = $('plan')
