@@ -281,7 +281,7 @@ function stepMatch(
 
 ### 7.4 簡易CPU（目標機能）
 
-- `cpu/` は `decide(observation, ...) → PlayerInput` を実装し、`CpuSource` から呼ぶ。`Observation` は、`MatchState` から作る**読み取り専用のビュー**で、プレイヤーが画面から知り得る情報（位置、速度、蓄積ダメージ、攻撃の状態）だけを含む。内部の判定値や、相手の次の入力は含めない（特別な能力を持たせない）。
+- `cpu/` は `createCpu(setup, level, seed)` が返す判断の関数（`CpuView → PlayerInput`）を実装し、`CpuSource` から呼ぶ。`CpuSource` は `observation` に、そのステップの `MatchState` を受け取り、`viewOf` で**読み取り専用のビュー**（`CpuView`）に写してから判断に渡す。ビューは、プレイヤーが画面から知り得る情報（位置、速度、蓄積ダメージ、攻撃の状態）だけを含む。内部の判定値や、相手の次の入力は含めない（特別な能力を持たせない）。
 - CPU は乱数を使う場合も、**シードを引数に取る**（D6）。リプレイで再現できる。
 
 ## 8. 対戦と通信の切り分け
@@ -407,3 +407,4 @@ type ProgressState = { phase: Phase; sessionId: string; revision: number /* … 
 | 2026-10-09 | §4.1 に `src/progress/`（core）を追加 | #67 の実装。親機サーバーと参加者PCで、進行状態の検証を共有するため | event-control.md、event-host.md |
 | 2026-10-09 | §8.2 に、親機連携の実装（#68）の場所を追記 | #68 の実装 | event-control.md、data-model.md |
 | 2026-10-10 | §5.3 の仮想パッドを `VirtualPadInput` として実装。§10 のスマホの扱いを更新 | #49 の実装 | mobile-ui.md、src/input/virtualPad.ts |
+| 2026-10-10 | §7.4 を、簡易CPUの実装（`createCpu`・`viewOf`・`CpuSource`）に合わせた。乱数は `battle/random.ts` の `rng`（シードつき）を、バランス調整のボットと共有する | #72 の対応（[cpu-opponent.md](../03-combat/cpu-opponent.md)） | src/cpu/、src/battle/random.ts |

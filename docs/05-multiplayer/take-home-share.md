@@ -143,7 +143,7 @@ https://m0o9l0v3.github.io/oc-battle-sim/#t1.<ペイロード>
 - 復元できたら、**入口の画面**（S01 の前に置く。画面番号は #61 で付ける）に、復元した 1P の名前・能力値・外観と、ステージの形を表示する。
 - 選べる操作:
   - **「ふたりで あそぶ」**: 1P を復元した設定、2P を標準の設定（2P 用の外観）にして、復元したステージで、1台のキーボードを共有するローカル対戦（S06 の キー確認 → 対戦）へ進む。設定は、あとで S03 で変えられる。
-  - **「CPUと あそぶ」**: 簡易CPU（REQ-CPU-01、#71・#72）が実装されたら有効にする。それまでは、表示しない。
+  - **「CPUと あそぶ」**: 復元した 1P で、簡易CPU（REQ-CPU-01）と、1台のキーボードで対戦する。CPU の強さ（よわい・ふつう・つよい）と能力値（標準で始まる）を選んでから始める（[cpu-opponent.md](../03-combat/cpu-opponent.md) §9）。結果は、Battle Report・比較には残さない。
   - **「はじめから つくる」**: 復元したデータを使わず、S01 から始める。
 - 家庭では、親機がない（`HostLink` は何もしない実装。frontend.md §8）。フェーズ・一斉リセット・再戦の受付停止は、働かない。
 
@@ -195,7 +195,7 @@ https://m0o9l0v3.github.io/oc-battle-sim/#t1.<ペイロード>
 | できる | できない |
 |---|---|
 | PC 1台のキーボードを2人で共有するローカル2人対戦 | 通信対戦（オンライン対戦）。ネットワークをまたいだ対戦は行わない |
-| 簡易CPUとの対戦（REQ-CPU-01。実装後。PC・スマホ） | 戦の記録（Battle Report の履歴）の引き継ぎ |
+| 簡易CPUとの対戦（REQ-CPU-01。PC・スマホ） | 戦の記録（Battle Report の履歴）の引き継ぎ |
 | 復元した設定を、S03・S04 で変えて遊ぶ | 親機による進行管理（会場だけ） |
 | ステージの編集 | |
 | スマホ: 復元した設定の表示と、PC への URL の受け渡し（MVP） | スマホでの対戦（MVP では不可。目標機能） |
@@ -230,7 +230,8 @@ https://m0o9l0v3.github.io/oc-battle-sim/#t1.<ペイロード>
 | S12 の QR・URL・注意書き | `src/ui/FlowScreens.tsx` の `EndScreen` |
 | 持ち帰りの入口（PC・スマホ・失敗） | `src/ui/TakeHomeEntry.tsx` |
 | 持ち帰りカードの印刷 | [take-home-print.md](./take-home-print.md)（`server/printQueue.ts`、`server/printSheet.ts`、`server/print-station.html`、`src/net/print.ts`、`EndScreen`） |
-| 未実装 | 画面（S12）の学校ロゴ（印刷のカードには載せた）。簡易CPU との対戦（#71・#72）。実機のカメラでの読み取りの確認（test-plan.md T10） |
+| 簡易CPU との対戦（PC・スマホ） | `src/ui/CpuPlayScreen.tsx`（PC）、`src/ui/MobilePlayScreen.tsx`（スマホ）、`src/cpu/`（[cpu-opponent.md](../03-combat/cpu-opponent.md)） |
+| 未実装 | 画面（S12）の学校ロゴ（印刷のカードには載せた）。実機のカメラでの読み取りの確認（test-plan.md T10） |
 
 ## 15. Acceptance Criteria
 
@@ -250,3 +251,4 @@ https://m0o9l0v3.github.io/oc-battle-sim/#t1.<ペイロード>
 | 2026-10-08 | チェックサムの計算範囲をバイト境界にそろえた（予備を 5 ビット、欄 1〜9 を常に 8 の倍数に）、フラグメント除去後の URL を復元データから作り直す、空でないフラグメントをすべて復号へ回す | #112 のレビュー指摘 | §6、§9 |
 | 2026-10-08 | 初版 | #60 の対応。形式（バージョン 1）、最悪の長さ（URL 193 バイト、QR バージョン 10・誤り訂正 M）、復元と失敗の扱い、ロゴの方針を定義。ルーム情報は、通信対戦の取り下げにより含めない | #61、#48、#50、character-config.md §8、stage-format.md §9、data-model.md §5 |
 | 2026-10-10 | §10・§11・§14.1 に、持ち帰りカードの印刷（[take-home-print.md](./take-home-print.md)）を追記 | 所有者の依頼 | event-control.md §11 |
+| 2026-10-10 | §9.2 の「CPUと あそぶ」を有効にした（強さ・能力値を選んでから始める）。§12・§14.1 を更新 | #72 の対応（[cpu-opponent.md](../03-combat/cpu-opponent.md)） | src/ui/TakeHomeEntry.tsx、src/ui/AppShell.tsx |

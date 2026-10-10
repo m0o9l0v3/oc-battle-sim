@@ -19,6 +19,7 @@ import {
 import { AppearanceScreen } from './AppearanceScreen.tsx'
 import { BattleReport } from './BattleReport.tsx'
 import { CompareView } from './CompareView.tsx'
+import { CpuPlayScreen } from './CpuPlayScreen.tsx'
 import { Button, MessageBand, StepBar } from './components/index.ts'
 import {
   EndScreen,
@@ -58,6 +59,8 @@ export function AppShell({
   const [mobile] = useState(isMobileEnvironment)
   // スマホで、持ち帰った設定のまま遊んでいる（mobile-ui.md §4.1）
   const [mobilePlay, setMobilePlay] = useState(false)
+  // PC で、持ち帰った設定のまま、簡易CPUと遊んでいる（cpu-opponent.md §9）
+  const [cpuPlay, setCpuPlay] = useState(false)
   // リセットのたびに、画面の部品の状態（S04 のエディタなど）を、作り直す（前の参加者の作品を、次の参加者に見せない）
   const [generation, setGeneration] = useState(0)
   const reset = useCallback(() => {
@@ -105,6 +108,17 @@ export function AppShell({
       />
     )
   }
+  if (entry && entry.status === 'restored' && cpuPlay) {
+    return (
+      <main className="flow">
+        <CpuPlayScreen
+          config={entry.character}
+          stage={entry.stage}
+          onBack={() => setCpuPlay(false)}
+        />
+      </main>
+    )
+  }
   if (entry && (entry.status === 'failed' || session.data.screen === 'S01')) {
     return (
       <TakeHomeEntry
@@ -118,6 +132,7 @@ export function AppShell({
           tryEnterLandscape()
           setMobilePlay(true)
         }}
+        onPlayCpu={() => setCpuPlay(true)}
         onFresh={() => {
           dispatch({ type: 'RESET' })
           leaveEntry()

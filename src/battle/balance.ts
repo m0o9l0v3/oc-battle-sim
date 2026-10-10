@@ -16,18 +16,7 @@ import {
 } from './match.ts'
 import { DEFAULT_MATCH_RULES, type MatchRules } from './rules.ts'
 import type { CombatConfig } from '../combat/index.ts'
-
-/** 疑似乱数（mulberry32）。0 以上 1 未満 */
-export function rng(seed: number) {
-  let a = seed >>> 0
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0
-    let t = a
-    t = Math.imul(t ^ (t >>> 15), t | 1)
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
+import { rng } from './random.ts'
 
 /**
  * 基準のボット。両者が同じ方針で動く（能力値の違いだけが、結果の差になる）。

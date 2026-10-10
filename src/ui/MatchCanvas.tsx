@@ -5,9 +5,11 @@ import {
   createMatchState,
   isMatchFinished,
   stepMatch,
+  type InputSource,
   type MatchState,
 } from '../battle/index.ts'
-import { createCanvasView } from '../engine/index.ts'
+import { CpuSource, type CpuLevel } from '../cpu/index.ts'
+import { createCanvasView, type CanvasView } from '../engine/index.ts'
 import { KeyboardInput } from '../input/index.ts'
 import type { CharacterConfig, MatchOutcome, PlayerMetrics, StageData } from '../model/index.ts'
 import { MetricsRecorder } from '../report/index.ts'
@@ -16,6 +18,7 @@ import {
   createStageRenderer,
   lookFromAppearance,
   type DrawContext,
+  type Rect,
   type Renderer,
 } from '../render/index.ts'
 
@@ -43,6 +46,15 @@ export type MatchCanvasProps = {
     p1: PlayerMetrics
     p2: PlayerMetrics
   }) => void
+  /** 1P の入力。省略すると、キーボード（1P の配置）。スマホでは、仮想コントローラー */
+  p1Input?: InputSource
+  /** 2P を簡易CPUにする（cpu-opponent.md）。省略すると、キーボード（2P の配置） */
+  cpu?: { level: CpuLevel; seed: number }
+  /** 真の間は、ループを止める（スマホの縦持ちのとき。mobile-ui.md §5.2） */
+  paused?: boolean
+  /** 映す範囲。省略すると、場外領域まで */
+  view?: Rect
+  className?: string
 }
 
 const sameHud = (a: MatchHud, b: MatchHud) =>
@@ -55,21 +67,37 @@ const sameHud = (a: MatchHud, b: MatchHud) =>
 
 /**
  * 対戦（S07・S10）の Canvas。1 台のキーボードを 2 人で使う（pc-ui.md §4）。
+ * 2P を簡易CPUにすると、1 人で遊べる（持ち帰りのあと。PC・スマホ）。
  * 設定は、対戦の開始時点のものを使い、対戦中は変えない。unmount で、ループと入力を必ず止める
  */
-export function MatchCanvas({ p1, p2, stage, onHud, onFinish }: MatchCanvasProps) {
+export function MatchCanvas({
+  p1,
+  p2,
+  stage,
+  onHud,
+  onFinish,
+  p1Input,
+  cpu,
+  paused = false,
+  view: viewRect,
+  className = 'match-canvas',
+}: MatchCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const viewRef = useRef<CanvasView | null>(null)
+  const pausedRef = useRef(paused)
+  // 勝敗が確定し、結果を伝えた（このあとは、ループを動かさない）
+  const finishedRef = useRef(false)
   const cbRef = useRef({ onHud, onFinish })
   useEffect(() => {
     cbRef.current = { onHud, onFinish }
   }, [onHud, onFinish])
   // 開始時の設定を、1 回だけ読む（親が再描画しても、やり直さない）
-  const setup = useRef({ p1, p2, stage })
+  const setup = useRef({ p1, p2, stage, p1Input, cpu, viewRect })
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const { p1, p2, stage } = setup.current
+    const { p1, p2, stage, p1Input, cpu, viewRect } = setup.current
     const ctx = createMatchContext(stage, [p1.stats, p2.stats])
     const stageRenderer = createStageRenderer(stage)
     const fighters = createFighterRenderer({
@@ -82,11 +110,15 @@ export function MatchCanvas({ p1, p2, stage, onHud, onFinish }: MatchCanvasProps
         fighters.draw(dc, prev, curr, alpha)
       },
     }
-    const keys = new KeyboardInput(window)
-    const bots = [keys.p1, keys.p2] as const
+    // キーボードは、使う人がいるときだけ受ける（スマホで CPU と遊ぶときは、使わない）
+    const keys = p1Input && cpu ? null : new KeyboardInput(window)
+    const sources: [InputSource<MatchState>, InputSource<MatchState>] = [
+      p1Input ?? keys!.p1,
+      cpu ? new CpuSource(ctx, 1, cpu.level, cpu.seed) : keys!.p2,
+    ]
     let curr = createMatchState(ctx)
     let prev = curr
-    let finished = false
+    finishedRef.current = false
     let fightSteps = 0
     // 指標は、試合中のイベントから、その場で積み上げる（試合のあとに、読み直さない）
     const recorder = new MetricsRecorder()
@@ -97,11 +129,20 @@ export function MatchCanvas({ p1, p2, stage, onHud, onFinish }: MatchCanvasProps
     const view = createCanvasView({
       canvas,
       renderer,
+      view: viewRect,
       snapshots: () => ({ prev, curr }),
       onStep: (step) => {
-        if (finished) return
+        if (finishedRef.current) return
         prev = curr
-        const r = stepMatch(curr, [bots[0].sample({ step }), bots[1].sample({ step })], ctx)
+        // 盤面（observation）は、CPU だけが読む（キーボード・仮想パッドは、無視する）
+        const r = stepMatch(
+          curr,
+          [
+            sources[0].sample({ step, observation: curr }),
+            sources[1].sample({ step, observation: curr }),
+          ],
+          ctx,
+        )
         curr = r.state
         recorder.record(prev, curr, r.events)
         fighters.step(curr)
@@ -120,7 +161,9 @@ export function MatchCanvas({ p1, p2, stage, onHud, onFinish }: MatchCanvasProps
           cbRef.current.onHud(next)
         }
         if (curr.outcome && isMatchFinished(curr, ctx)) {
-          finished = true
+          finishedRef.current = true
+          // 結果を出している間は、描画も止める（スマホで結果の画面のまま置かれても、電池を使い続けない）
+          view.stop()
           const [p1m, p2m] = recorder.result(curr)
           cbRef.current.onFinish({
             outcome: curr.outcome,
@@ -132,17 +175,28 @@ export function MatchCanvas({ p1, p2, stage, onHud, onFinish }: MatchCanvasProps
       },
       onError: (e) => console.error(e),
     })
-    view.start()
+    viewRef.current = view
+    if (!pausedRef.current) view.start()
     return () => {
+      viewRef.current = null
       view.dispose()
-      keys.dispose()
+      keys?.dispose()
+      sources[1].dispose()
     }
   }, [])
+
+  useEffect(() => {
+    pausedRef.current = paused
+    const view = viewRef.current
+    if (!view) return
+    if (paused || finishedRef.current) view.stop()
+    else view.start()
+  }, [paused])
 
   return (
     <canvas
       ref={canvasRef}
-      className="match-canvas"
+      className={className}
       role="img"
       aria-label={messages.flow.match.canvasLabel}
     />

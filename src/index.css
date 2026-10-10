@@ -1341,7 +1341,10 @@ html.is-mobile-play body {
   z-index: 1;
   top: calc(env(safe-area-inset-top, 0px) + 8px);
   right: calc(env(safe-area-inset-right, 0px) + 16px);
+  display: flex;
+  gap: 1rem;
   margin: 0;
+  font-variant-numeric: tabular-nums;
   padding: 0.35rem 0.75rem;
   border-radius: var(--radius);
   background: var(--c-battle-panel);
@@ -1374,6 +1377,36 @@ html.is-mobile-play body {
   100% {
     opacity: 0;
   }
+}
+/* 勝敗が決まったときの表示（仮想コントローラーより上。「もどる」は、さらに上） */
+.mobile-play__result {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  background: color-mix(in srgb, var(--c-battle-bg) 75%, transparent);
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-align: center;
+}
+.mobile-play__result p {
+  margin: 0 1rem;
+}
+.mobile-play__again {
+  min-width: 160px;
+  min-height: 56px;
+  padding: 0 1.5rem;
+  border: var(--border) solid var(--c-battle-text);
+  border-radius: var(--radius);
+  background: var(--c-battle-panel);
+  color: var(--c-battle-text);
+  font: inherit;
+  font-size: 1.2rem;
+  touch-action: manipulation;
 }
 /* 縦持ちのときの案内（全面） */
 .mobile-play__rotate {
@@ -1487,4 +1520,22 @@ html.is-mobile-play body {
   top: 0;
   width: 72px;
   height: 72px;
+}
+
+/* --- 簡易CPUとの対戦（PC。docs/03-combat/cpu-opponent.md §9） --- */
+.cpu-play__levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 0;
+  border: 0;
+}
+.cpu-play__levels legend {
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+.cpu-play__levels .choice {
+  min-width: 10rem;
+  padding: 0.6rem 1rem;
 }
