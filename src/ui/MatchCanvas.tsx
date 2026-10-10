@@ -85,6 +85,8 @@ export function MatchCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const viewRef = useRef<CanvasView | null>(null)
   const pausedRef = useRef(paused)
+  // 勝敗が確定し、結果を伝えた（このあとは、ループを動かさない）
+  const finishedRef = useRef(false)
   const cbRef = useRef({ onHud, onFinish })
   useEffect(() => {
     cbRef.current = { onHud, onFinish }
@@ -116,7 +118,7 @@ export function MatchCanvas({
     ]
     let curr = createMatchState(ctx)
     let prev = curr
-    let finished = false
+    finishedRef.current = false
     let fightSteps = 0
     // 指標は、試合中のイベントから、その場で積み上げる（試合のあとに、読み直さない）
     const recorder = new MetricsRecorder()
@@ -130,7 +132,7 @@ export function MatchCanvas({
       view: viewRect,
       snapshots: () => ({ prev, curr }),
       onStep: (step) => {
-        if (finished) return
+        if (finishedRef.current) return
         prev = curr
         // 盤面（observation）は、CPU だけが読む（キーボード・仮想パッドは、無視する）
         const r = stepMatch(
@@ -159,7 +161,9 @@ export function MatchCanvas({
           cbRef.current.onHud(next)
         }
         if (curr.outcome && isMatchFinished(curr, ctx)) {
-          finished = true
+          finishedRef.current = true
+          // 結果を出している間は、描画も止める（スマホで結果の画面のまま置かれても、電池を使い続けない）
+          view.stop()
           const [p1m, p2m] = recorder.result(curr)
           cbRef.current.onFinish({
             outcome: curr.outcome,
@@ -185,7 +189,7 @@ export function MatchCanvas({
     pausedRef.current = paused
     const view = viewRef.current
     if (!view) return
-    if (paused) view.stop()
+    if (paused || finishedRef.current) view.stop()
     else view.start()
   }, [paused])
 

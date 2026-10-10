@@ -87,7 +87,8 @@ export function createCpu(setup: CpuSetup, level: CpuLevel, seed: number) {
   let evadeThis = false
   let prevSelfAttacking = false
   let anchor = { x: 0, step: 0 }
-  let lastAttackStep = 0
+  // 攻撃が届く距離に、続けて相手がいるようになったステップ（届かない・攻撃中は null）
+  let inRangeSince: number | null = null
 
   const safeAhead = (me: FighterView, dir: -1 | 1, dist: number) =>
     terrain.safe(me.x + dir * dist, me.y)
@@ -229,6 +230,10 @@ export function createCpu(setup: CpuSetup, level: CpuLevel, seed: number) {
       plan = { action: 'retreat', dir: away, left: 15 + Math.floor(rand() * 15), jumpAt: -1 }
     }
     prevSelfAttacking = attacking
+    // 届く距離に、続けて何ステップいるか（固まり防止。届かない間・攻撃中は数え直す）
+    const canHit = !foe.down && !foe.stunned && !foe.invulnerable && inBand(dy, c)
+    const inRange = canHit && Math.abs(dx) <= reach
+    inRangeSince = inRange && !attacking ? (inRangeSince ?? v.step) : null
     if (attacking) return { input: NO_INPUT, action: 'attack' } // 攻撃の間は、その場で出し切る
 
     // 3. 回避: 相手が攻撃を構えた・間合いに入ってきた（抽選に当たったときだけ。1 回につき 1 回）
@@ -259,26 +264,23 @@ export function createCpu(setup: CpuSetup, level: CpuLevel, seed: number) {
     if (planned) return planned
 
     // 5. 攻撃（判断の間隔ごとに抽選。届かない距離で出してしまうのが、ミス）
-    const canHit = !foe.down && !foe.stunned && !foe.invulnerable && inBand(dy, c)
     if (think && canHit) {
-      const inRange = Math.abs(dx) <= reach
       const nearMiss = !inRange && Math.abs(dx) <= reach + 0.7
-      // 届く距離で、長く攻撃しないままにならない（固まらない）
-      const overdue = inRange && v.step - lastAttackStep >= STUCK_STEPS
+      // 届く距離に 1 秒続けていて、まだ攻撃していない: 抽選なしで攻撃する（固まらない）
+      const overdue = inRangeSince !== null && v.step - inRangeSince >= STUCK_STEPS
       if (
         overdue ||
         (inRange && rand() < level.attackChance) ||
         (nearMiss && rand() < level.missChance)
       ) {
         anchor = { x: me.x, step: v.step }
-        lastAttackStep = v.step
         return { input: press(toFoe, false, true), action: 'attack' }
       }
     }
 
     // 6. 固まっていないか（同じ場所で、攻撃もできずにいる）。固まっていたら、位置を取り直す
     if (Math.abs(me.x - anchor.x) > STUCK_DIST || foe.down) anchor = { x: me.x, step: v.step }
-    else if (v.step - anchor.step >= STUCK_STEPS && !(canHit && Math.abs(dx) <= reach)) {
+    else if (v.step - anchor.step >= STUCK_STEPS && !inRange) {
       anchor = { x: me.x, step: v.step }
       const first = (rand() < 0.5 ? -1 : 1) as -1 | 1
       const dir = safeAhead(me, first, 0.8) ? first : (-first as -1 | 1)

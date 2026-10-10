@@ -180,6 +180,24 @@ describe('行動（§4）', () => {
     expect(acts.slice(19)).toContain('attack')
   })
 
+  it('固まり防止: 届く距離に入った直後は、抽選なしでは攻撃しない。1 秒続けていたら攻撃する', () => {
+    const lv: CpuLevel = {
+      ...sure,
+      attackChance: 0,
+      missChance: 0,
+      reactionSteps: 4,
+      thinkSteps: 2,
+    }
+    const decide = createCpu(setup, lv, 1)
+    // 長く近づいてから（前の攻撃から 1 秒以上たってから）、届く距離に入る
+    for (let i = 0; i < 200; i++) decide(view(200 + i, { x: 15 }, { x: 5 }))
+    const acts: string[] = []
+    for (let i = 0; i < 90; i++) acts.push(decide(view(400 + i, { x: 10.8 }, { x: 10 })).action)
+    const at = acts.indexOf('attack')
+    expect(at).toBeGreaterThanOrEqual(60)
+    expect(at).toBeLessThanOrEqual(60 + lv.reactionSteps + lv.thinkSteps)
+  })
+
   it('回避: 相手が攻撃を構えたら、離れるか、ジャンプでかわす', () => {
     const lv: CpuLevel = { ...CPU_LEVELS.hard, evadeChance: 1, attackChance: 0, missChance: 0 }
     const decide = createCpu(setup, lv, 3)

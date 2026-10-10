@@ -37,10 +37,10 @@ export const CPU_LEVELS: Readonly<Record<CpuLevelId, Readonly<CpuLevel>>> = Obje
   }),
   hard: Object.freeze({
     reactionSteps: 4,
-    thinkSteps: 3,
-    attackChance: 0.8,
-    evadeChance: 0.6,
-    retreatChance: 0.4,
+    thinkSteps: 2,
+    attackChance: 0.9,
+    evadeChance: 0.5,
+    retreatChance: 0.3,
     missChance: 0.05,
   }),
 })
