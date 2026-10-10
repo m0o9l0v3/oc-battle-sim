@@ -1,8 +1,14 @@
 import { useEffect, useRef } from 'react'
 import { messages } from '../assets/index.ts'
-import { createMatchState, DUMMY_INPUT, stepMatch, type MatchState } from '../battle/index.ts'
+import {
+  createMatchState,
+  DUMMY_INPUT,
+  stepMatch,
+  type InputSource,
+  type MatchState,
+} from '../battle/index.ts'
 import { createPracticeContext } from '../battle/practice.ts'
-import { createCanvasView } from '../engine/index.ts'
+import { createCanvasView, type CanvasView } from '../engine/index.ts'
 import { KeyboardInput } from '../input/index.ts'
 import type { Appearance, StageData, Stats } from '../model/index.ts'
 import {
@@ -34,6 +40,11 @@ export type PracticeCanvasProps = {
   onHud: (hud: PracticeHud) => void
   /** 増えると、最初から（ダミーのダメージも 0 に） */
   resetKey?: number
+  /** 1P の入力。省略すると、キーボード（1P の配置）。スマホでは、仮想コントローラー（mobile-ui.md §6） */
+  input?: InputSource
+  /** 真の間は、ループを止める（スマホの縦持ちのとき。mobile-ui.md §5.2） */
+  paused?: boolean
+  className?: string
 }
 
 /**
@@ -47,8 +58,13 @@ export function PracticeCanvas({
   dummyLook,
   onHud,
   resetKey = 0,
+  input,
+  paused = false,
+  className = 'practice-canvas',
 }: PracticeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const viewRef = useRef<CanvasView | null>(null)
+  const pausedRef = useRef(paused)
   const onHudRef = useRef(onHud)
   useEffect(() => {
     onHudRef.current = onHud
@@ -73,7 +89,8 @@ export function PracticeCanvas({
         fighters.draw(dc, prev, curr, alpha)
       },
     }
-    const keys = new KeyboardInput(window)
+    const keys = input ? null : new KeyboardInput(window)
+    const p1 = input ?? keys!.p1
     let curr = createMatchState(ctx)
     let prev = curr
     fighters.reset()
@@ -100,7 +117,7 @@ export function PracticeCanvas({
       snapshots: () => ({ prev, curr }),
       onStep: (step) => {
         prev = curr
-        const r = stepMatch(curr, [keys.p1.sample({ step }), DUMMY_INPUT], ctx)
+        const r = stepMatch(curr, [p1.sample({ step }), DUMMY_INPUT], ctx)
         curr = r.state
         fighters.step(curr)
         let lastHit = hud.lastHit
@@ -116,17 +133,27 @@ export function PracticeCanvas({
       },
       onError: (e) => console.error(e),
     })
-    view.start()
+    viewRef.current = view
+    if (!pausedRef.current) view.start()
     return () => {
+      viewRef.current = null
       view.dispose()
-      keys.dispose()
+      keys?.dispose()
     }
-  }, [stage, statsKey, lookKey, resetKey])
+  }, [stage, statsKey, lookKey, resetKey, input])
+
+  useEffect(() => {
+    pausedRef.current = paused
+    const view = viewRef.current
+    if (!view) return
+    if (paused) view.stop()
+    else view.start()
+  }, [paused])
 
   return (
     <canvas
       ref={canvasRef}
-      className="practice-canvas"
+      className={className}
       role="img"
       aria-label={messages.practice.canvasLabel}
     />
