@@ -1,11 +1,12 @@
 // S01・S06〜S12 の画面。ファイター作成（S02・S03）、ステージ（S04）、試し動かし（S05）は、それぞれの部品。
 // S08（Battle Report）・S11（結果の比較）・S12 の持ち帰り QR は、#38・#39・#61 で、本格的なものに置き換える。
 // ここは、MVP の流れを、最初から最後まで通せるようにするための、最小の画面
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { messages } from '../assets/index.ts'
 import { resolveName, STAT_KEYS } from '../fighter/index.ts'
 import { DEFAULT_BINDINGS } from '../input/index.ts'
 import type { CharacterConfig, Stats } from '../model/index.ts'
+import type { PrintRequestResult } from '../net/index.ts'
 import { canRematch, statsChanged, type Session } from '../session/index.ts'
 import { buildTakeHomeUrl, PUBLIC_APP_URL } from '../share/index.ts'
 import { keysLabel } from './keyLabels.ts'
@@ -234,9 +235,61 @@ export function RedesignScreen({
 }
 
 /** S12 おわり。見た目・能力値・ステージは、リセットまで保持する。持ち帰り用の QR と URL（take-home-share.md） */
-export function EndScreen({ session, onReset }: { session: Session; onReset: () => void }) {
-  const { p1, stage } = session.data
+/** S12 の印刷（親機があるときだけ）。send は依頼を送る、onAccepted は受け付けられた整理番号を、セッションへ */
+export type EndScreenPrint = {
+  send: (takeHomeUrl: string) => Promise<PrintRequestResult>
+  onAccepted: (number: number) => void
+  /** 印刷を依頼できない理由（親機の進行で止まっているとき） */
+  blocked?: string
+}
+
+/** 「おくれたよ！」を見せてから、待機の画面へ切り替えるまで（take-home-print.md §7.2） */
+export const PRINT_SUCCESS_MS = 1000
+
+type PrintStatus = 'idle' | 'sending' | 'success' | 'failed'
+
+export function EndScreen({
+  session,
+  onReset,
+  print,
+}: {
+  session: Session
+  onReset: () => void
+  print?: EndScreenPrint
+}) {
+  const { p1, stage, printNumber } = session.data
   const url = buildTakeHomeUrl(PUBLIC_APP_URL, p1, stage)
+  const [status, setStatus] = useState<PrintStatus>('idle')
+  // 同じ描画の中の連打でも、1 回だけ送る
+  const sendingRef = useRef(false)
+
+  useEffect(() => {
+    if (status !== 'success') return
+    const t = setTimeout(() => setStatus('idle'), PRINT_SUCCESS_MS)
+    return () => clearTimeout(t)
+  }, [status])
+
+  const requestPrint = useCallback(async () => {
+    if (!print || !url || sendingRef.current) return
+    sendingRef.current = true
+    setStatus('sending')
+    const r = await print.send(url)
+    sendingRef.current = false
+    if (r.ok) {
+      // すぐにセッションへ残す（更新しても、待機の画面のまま。再び依頼させない）
+      print.onAccepted(r.number)
+      setStatus('success')
+    } else {
+      setStatus('failed')
+    }
+  }, [print, url])
+
+  // 印刷を受け付けたあとは、待機の画面だけ（ボタンを出さない。リセットで戻る）
+  if (printNumber !== undefined && status !== 'success') {
+    return <PrintWaiting number={printNumber} />
+  }
+
+  const pm = messages.print
   return (
     <div className="end">
       <h2>{m.end.title}</h2>
@@ -262,9 +315,28 @@ export function EndScreen({ session, onReset }: { session: Session; onReset: () 
               <p role="alert">{m.end.qrFailed}</p>
             )}
           </section>
-          <Button variant="sub" onClick={onReset}>
-            {m.end.reset}
-          </Button>
+          {print && url && (
+            <section className="end__print">
+              <p className="practice__note">{pm.lead}</p>
+              <Button
+                variant="main"
+                disabled={status === 'sending' || status === 'success' || !!print.blocked}
+                reason={print.blocked}
+                onClick={() => void requestPrint()}
+              >
+                {status === 'sending' && <span className="spinner" aria-hidden="true" />}
+                {status === 'sending' ? pm.sending : pm.button}
+              </Button>
+              <p className="end__print-status" role="status" aria-live="polite">
+                {status === 'success' ? pm.success : status === 'failed' ? pm.failed : ''}
+              </p>
+            </section>
+          )}
+          {status !== 'success' && (
+            <Button variant="sub" onClick={onReset}>
+              {m.end.reset}
+            </Button>
+          )}
         </div>
         {url && (
           <section className="end__qr">
@@ -277,5 +349,29 @@ export function EndScreen({ session, onReset }: { session: Session; onReset: () 
         )}
       </div>
     </div>
+  )
+}
+
+/** 印刷を受け付けたあとの待機の画面。操作するものは置かない（take-home-print.md §7.3） */
+function PrintWaiting({ number }: { number: number }) {
+  const pm = messages.print
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  // 画面が切り替わったことを、読み上げでも分かるように
+  useEffect(() => titleRef.current?.focus(), [])
+  return (
+    <section className="print-waiting" aria-labelledby="print-waiting-title">
+      <svg className="print-waiting__icon" viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="24" r="22" />
+        <path d="M14 25l7 7 14-15" />
+      </svg>
+      <h2 id="print-waiting-title" ref={titleRef} tabIndex={-1}>
+        {pm.waitingTitle}
+      </h2>
+      <p>{pm.waitingBody}</p>
+      <p className="print-waiting__number">
+        <small>{pm.numberLabel}</small>
+        <strong>{number}</strong>
+      </p>
+    </section>
   )
 }

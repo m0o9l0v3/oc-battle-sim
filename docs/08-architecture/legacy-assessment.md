@@ -65,7 +65,7 @@
 | 16 | テスト | `test/*.test.js` | **Refactor** | テストケースは移植価値あり。Vitest + TypeScript へ移す |
 | 17 | CI/配信 | `.gitlab-ci.yml` | **Discard** | GitHub Actions に移行済み（#3） |
 | 18 | 学校ロゴ・ブランディング | `index.template.html` 内のSVG、`config.branding` | **Refactor** | 学校から許可を得て公式に提供されたロゴ。使う場合は公式提供のファイルを使い、Base64 埋め込みの複製は引き継がない |
-| 19 | 印刷機能（持ち帰りカード） | Issue #5 関連、`share.print` | **Discard** | 対戦アプリの要件にない |
+| 19 | 印刷機能（持ち帰りカード） | Issue #5 関連、`share.print` | **Refactor**（2026-10-10 見直し） | 持ち帰りカードとして採用（[take-home-print.md](../05-multiplayer/take-home-print.md)）。§3.16 |
 | 20 | コード体験（DEMO） | `src/modes/demo.js` | **Discard** | 色コード書き換え体験。本企画では能力値設定が相当する |
 
 以降、判定の理由を、再利用するもの（Reuse / Refactor）を中心に述べる。
@@ -161,6 +161,7 @@
 ### 3.16 印刷・コード体験 — Discard（印刷は持ち帰り機能の要否次第で見直し）
 
 - **印刷機能（持ち帰りカード）、DEMO（色コード体験）:** 対戦アプリの要件にない。
+- **見直し（2026-10-10）:** 印刷は、所有者の依頼で、持ち帰りカードとして採用した。`oc26-stage` の段階A〜C（印刷レイアウト、整理番号、親機経由の依頼、送信の表示と待機の画面）の考え方を引き継ぎ、親機で依頼のたびにブラウザを起動する方式を、印刷ステーション方式に改めた（[take-home-print.md](../05-multiplayer/take-home-print.md)）。DEMO は、引き続き Discard。
 
 ### 3.17 学校ロゴ・ブランディング — Refactor
 
@@ -222,3 +223,4 @@
 | 日付 | 変更内容 | 理由 | 影響範囲 |
 |---|---|---|---|
 | 2026-10-02 | 初版 | #4 の対応 | 後続 Issue への影響は §6 |
+| 2026-10-10 | §3.16 の印刷機能を見直し、持ち帰りカードとして採用（Refactor） | 所有者の依頼 | take-home-print.md |

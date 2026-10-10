@@ -246,6 +246,28 @@ export const messages = {
     previewLabel: (name: string) => `${name}の すがた`,
     failedNote: 'ひょうじゅんの ファイターで はじめられるよ',
   },
+  /** 持ち帰りカードの印刷（docs/05-multiplayer/take-home-print.md §6・§7） */
+  print: {
+    lead: 'カードに いんさつして もちかえることも できるよ',
+    button: 'カードを いんさつする',
+    sending: 'おくっています…',
+    success: 'おくれたよ！',
+    failed: 'うまく おくれなかったよ。もういちど おしてね',
+    waitingTitle: 'いんさつの リクエストが かんりょうしたよ',
+    waitingBody: 'カードが できるまで、すわって まっていてね。スタッフが とどけるよ',
+    numberLabel: 'せいりばんごう',
+    /** 印刷されるカード（親機の印刷シート） */
+    sheet: {
+      title: '持ち帰りカード',
+      qrHeading: 'QRコード',
+      fighter: 'ファイター',
+      stage: 'ステージ',
+      lead: 'スマホで QR を よみとると、きみの ファイターと ステージが もどるよ。パソコンで ひらくと、おうちでも たいせんできるよ',
+      urlLabel: 'QRが よめないときは、この アドレスを ひらいてね',
+      note: 'QRや アドレスを ひとに みせると、なまえが みえるよ',
+      number: '整理番号',
+    },
+  },
   /** Battle Report（S08）。結果と判断材料（数字）を、事実として示す。評価・指示の言葉を使わない（battle-report.md §8） */
   battleReport: {
     result: 'たいせんの けっか',

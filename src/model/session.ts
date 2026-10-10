@@ -26,6 +26,11 @@ export type SessionData = {
   screen: ScreenId
   /** S05 から S03 へ戻ったとき true（S03 の「つぎへ」は S05 へ戻る）。更新（再開）でも保つ。false のときは、書かない */
   returnToPractice?: boolean
+  /**
+   * 持ち帰りカードの印刷を親機が受け付けたときの整理番号（S12 だけ）。あるあいだ、S12 は待機の画面になり、
+   * 操作できない（一斉リセット・個別リセットで消える。take-home-print.md §7）。ないときは、書かない
+   */
+  printNumber?: number
 }
 
 /** localStorage に1つのキーで保存する形 */

@@ -125,3 +125,30 @@ describe('親機の進行による画面の表示（event-control.md §5.3、§6
     )
   })
 })
+
+describe('S12 の持ち帰りカードの印刷（take-home-print.md §7）', () => {
+  const pm = messages.print
+  const s12 = run(s01, { type: 'SHARE' })
+
+  it('親機とつながっているときだけ、印刷のボタンを出す', () => {
+    expect(html(s12, at('SHARING'))).toContain(pm.button)
+    expect(html(s12, NO_HOST)).not.toContain(pm.button)
+  })
+
+  it('持ち帰りの操作が止まっているフェーズでは、押せず、理由を出す', () => {
+    const markup = html(s12, at('ENDED'))
+    expect(markup).toMatch(new RegExp(`<button[^>]*disabled[^>]*>${pm.button}</button>`))
+    expect(markup).toContain(BLOCK_REASONS.ended)
+  })
+
+  it('受け付けたあとは、待機の画面だけ（整理番号。ボタンを出さない）', () => {
+    const waiting = run(s12, { type: 'PRINT_ACCEPTED', number: 12 })
+    for (const host of [at('SHARING'), NO_HOST]) {
+      const markup = html(waiting, host)
+      expect(markup).toContain(pm.waitingTitle)
+      expect(markup).toContain('<strong>12</strong>')
+      expect(markup).not.toContain('<button')
+      expect(markup).not.toContain('<svg class="qr"')
+    }
+  })
+})

@@ -1196,3 +1196,94 @@ main.flow {
 .flow__body[inert] {
   opacity: 0.6;
 }
+
+/* S12 の持ち帰りカードの印刷（take-home-print.md §7） */
+.end__print {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.end__print-status {
+  margin: 0;
+  min-height: 1.5em;
+  font-weight: bold;
+  color: var(--c-success);
+}
+
+.spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.5em;
+  vertical-align: -0.125em;
+  border: 3px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spinner-turn 0.8s linear infinite;
+}
+
+@keyframes spinner-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+.print-waiting {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  max-width: 40rem;
+  margin: 3rem auto;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  background: var(--c-surface);
+  border: var(--border) solid var(--c-border);
+  border-radius: var(--radius);
+}
+
+.print-waiting h2 {
+  margin: 0;
+}
+
+.print-waiting h2:focus {
+  outline: none;
+}
+
+.print-waiting p {
+  margin: 0;
+}
+
+.print-waiting__icon {
+  width: 5rem;
+  height: 5rem;
+  fill: var(--c-success-bg);
+  stroke: var(--c-success);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.print-waiting__number {
+  display: grid;
+  padding: 0.75rem 2.5rem;
+  border-radius: var(--radius);
+  background: var(--c-info-bg);
+  color: var(--c-info);
+}
+
+.print-waiting__number small {
+  font-size: var(--fs-note);
+}
+
+.print-waiting__number strong {
+  font-size: var(--fs-number);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}

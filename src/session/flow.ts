@@ -47,6 +47,8 @@ export type FlowAction =
   | { type: 'SHARE' }
   /** 持ち帰りの設定を復元したあとの「ふたりで あそぶ」。S01 から S06 へ（take-home-share.md §9.2） */
   | { type: 'IMPORT_PLAY' }
+  /** 持ち帰りカードの印刷を、親機が受け付けた（S12 だけ。1 回だけ）。S12 は待機の画面になる */
+  | { type: 'PRINT_ACCEPTED'; number: number }
   /** リセット（どの画面からでも。対戦中も中断）。全データを破棄して S01 へ */
   | { type: 'RESET' }
 
@@ -150,6 +152,11 @@ export function reduceFlow(s: Session, a: FlowAction): Session {
       return screen === 'S07' || screen === 'S10' || screen === 'S12'
         ? s
         : go(s, 'S12', { returnToPractice: false })
+
+    case 'PRINT_ACCEPTED':
+      return screen === 'S12' && s.data.printNumber === undefined
+        ? { ...s, data: { ...s.data, printNumber: a.number } }
+        : s
 
     case 'IMPORT_PLAY':
       return screen === 'S01' && matchReady(s) ? go(s, 'S06') : s
