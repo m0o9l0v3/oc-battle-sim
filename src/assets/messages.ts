@@ -231,6 +231,8 @@ export const messages = {
     playTwo: 'ふたりで あそぶ',
     playTwoNote: '1つの キーボードを ふたりで つかうよ。2P は ひょうじゅんの ファイター',
     fresh: 'はじめから つくる',
+    playCpu: 'CPUと あそぶ',
+    playCpuNote: 'ひとりで あそぶよ。あいては CPU',
     mobileTitle: 'パソコンで ひらいてね',
     mobileBody:
       'スマートフォンでは、この ファイターを うごかせるよ。つくりなおすときは、パソコンで ひらいてね',
@@ -248,6 +250,29 @@ export const messages = {
     failedResume: 'まえの つづきから あそぶ',
     previewLabel: (name: string) => `${name}の すがた`,
     failedNote: 'ひょうじゅんの ファイターで はじめられるよ',
+  },
+  /** 簡易CPUとの対戦（docs/03-combat/cpu-opponent.md §9） */
+  cpuPlay: {
+    title: 'CPUと たいせん',
+    lead: 'キーボードの 1P の キーで うごかしてね',
+    foeName: 'CPU',
+    level: 'CPUの つよさ',
+    levels: { easy: 'よわい', normal: 'ふつう', hard: 'つよい' },
+    levelNotes: {
+      easy: 'ゆっくり うごくよ',
+      normal: 'はじめは これが おすすめ',
+      hard: 'すばやく うごくよ',
+    },
+    foeNote: 'CPUは ひょうじゅんの すうじで はじまるよ',
+    changeFoe: 'CPUの すうじを かえる',
+    closeFoe: 'きまり',
+    start: 'たいせんかいし',
+    win: 'きみの かち！',
+    lose: 'CPUの かち！',
+    draw: 'ひきわけ！',
+    again: 'もういちど',
+    changeLevel: 'つよさを かえる',
+    back: 'もどる',
   },
   /** 持ち帰りカードの印刷（docs/05-multiplayer/take-home-print.md §6・§7） */
   print: {
@@ -282,7 +307,12 @@ export const messages = {
     attack: 'こうげき',
     hint: '◀ ▶ で うごく。ジャンプ と こうげき を おしてね',
     rotate: 'スマホを よこに してね',
-    foeDamage: (n: number) => `あいて ${n}%`,
+    /** 対戦の表示（左上: 自分、右上: CPU。のこり時間は中央） */
+    youStatus: (damage: number, stocks: number) => `きみ ${damage}%  のこり${stocks}`,
+    foeStatus: (damage: number, stocks: number) => `CPU ${damage}%  のこり${stocks}`,
+    time: (s: number) => `${s}びょう`,
+    ready: 'じゅんび…',
+    again: 'もういちど',
   },
   /** Battle Report（S08）。結果と判断材料（数字）を、事実として示す。評価・指示の言葉を使わない（battle-report.md §8） */
   battleReport: {

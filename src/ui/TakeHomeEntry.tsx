@@ -30,6 +30,7 @@ export function TakeHomeEntry({
   mobile,
   onPlay,
   onPlayMobile,
+  onPlayCpu,
   onFresh,
   onDismiss,
   resume = false,
@@ -40,6 +41,8 @@ export function TakeHomeEntry({
   onPlay: () => void
   /** スマホ: 「スマホで あそぶ」（持ち帰った設定のまま、仮想コントローラーで） */
   onPlayMobile?: () => void
+  /** PC: 「CPUと あそぶ」（持ち帰った設定のまま、簡易CPUと。cpu-opponent.md §9） */
+  onPlayCpu?: () => void
   /** 「はじめから つくる」 */
   onFresh: () => void
   /** 失敗のとき: 標準の設定で始める */
@@ -128,6 +131,14 @@ export function TakeHomeEntry({
             {m.playTwo}
           </Button>
           <p className="practice__note">{m.playTwoNote}</p>
+          {onPlayCpu && (
+            <>
+              <Button variant="main" onClick={onPlayCpu}>
+                {m.playCpu}
+              </Button>
+              <p className="practice__note">{m.playCpuNote}</p>
+            </>
+          )}
           <Button variant="sub" onClick={onFresh}>
             {m.fresh}
           </Button>

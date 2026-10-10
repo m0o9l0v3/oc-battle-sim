@@ -152,6 +152,32 @@ describe('持ち帰りの入口', () => {
     expect(html).not.toContain(m.playMobile)
   })
 
+  it('PC: 「CPUと あそぶ」（cpu-opponent.md §9）。スマホには出さない', () => {
+    const pc = renderToStaticMarkup(
+      <TakeHomeEntry
+        result={restored}
+        mobile={false}
+        onPlay={noop}
+        onPlayCpu={noop}
+        onFresh={noop}
+        onDismiss={noop}
+      />,
+    )
+    expect(pc).toContain(m.playCpu)
+    const mobile = renderToStaticMarkup(
+      <TakeHomeEntry
+        result={restored}
+        mobile
+        onPlay={noop}
+        onPlayMobile={noop}
+        onPlayCpu={noop}
+        onFresh={noop}
+        onDismiss={noop}
+      />,
+    )
+    expect(mobile).not.toContain(m.playCpu)
+  })
+
   it('失敗: 理由と次の操作を示し、復元できたようには見せない', () => {
     const html = renderToStaticMarkup(
       <TakeHomeEntry
